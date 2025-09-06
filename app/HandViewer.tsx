@@ -5,27 +5,21 @@ import {
   HandLandmarker,
   FilesetResolver,
   DrawingUtils,
+  NormalizedLandmark,
+  Category,
 } from "@mediapipe/tasks-vision";
 import { useLoop } from "./useLoop";
 import { useHandLandmarker } from "./useHandLandmarker";
 import { useDrawingUtils } from "./useDrawingUtils";
 import { useWebcam } from "./useWebcam";
 
-interface HandLandmark {
-  x: number;
-  y: number;
-  z: number;
-}
-
-interface HandDetectionResult {
-  landmarks: HandLandmark[][];
-  handednesses: any[];
-}
-
 export default function HandViewer({
   onHandsDetected,
 }: {
-  onHandsDetected?: (hands: HandDetectionResult[]) => void;
+  onHandsDetected?: (
+    hands: NormalizedLandmark[][],
+    handedness: Category[][]
+  ) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,6 +105,7 @@ export default function HandViewer({
       performance.now()
     );
     if (results.landmarks && results.landmarks.length > 0) {
+      onHandsDetected?.(results.landmarks, results.handedness);
       for (const landmarks of results.landmarks) {
         drawingUtils?.drawConnectors(
           landmarks,
