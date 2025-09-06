@@ -24,11 +24,59 @@ interface HandDetectionResult {
 
 export default function HandViewer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const handLandmarker = useHandLandmarker();
 
   const [drawingUtils, setDrawingUtils] = useState<DrawingUtils | null>(null);
 
   const { webcamRunning, error, videoRef, startWebcam } = useWebcam();
+
+  // Function to update canvas dimensions to match video
+  const updateCanvasDimensions = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    // Update canvas size to match video size
+    if (
+      canvas.width !== video.videoWidth ||
+      canvas.height !== video.videoHeight
+    ) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.style.width = video.offsetWidth + "px";
+      canvas.style.height = video.offsetHeight + "px";
+    }
+  }, []);
+
+  // Add resize event listener
+  useEffect(() => {
+    const handleResize = () => {
+      updateCanvasDimensions();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Also handle when video metadata loads (important for initial sizing)
+    const video = videoRef.current;
+    const handleVideoResize = () => {
+      updateCanvasDimensions();
+    };
+
+    if (video) {
+      video.addEventListener("loadedmetadata", handleVideoResize);
+      video.addEventListener("resize", handleVideoResize);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (video) {
+        video.removeEventListener("loadedmetadata", handleVideoResize);
+        video.removeEventListener("resize", handleVideoResize);
+      }
+    };
+  }, [updateCanvasDimensions, webcamRunning]);
 
   const onLoop = useCallback(() => {
     if (
@@ -40,22 +88,11 @@ export default function HandViewer() {
       return;
     }
 
-    // Update canvas size to match video size
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    //check if the canvas is the same size, update it if not
-    if (
-      canvas.width !== video.videoWidth ||
-      canvas.height !== video.videoHeight
-    ) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.style.width = video.offsetWidth + "px";
-      canvas.style.height = video.offsetHeight + "px";
-    }
+    // Update canvas dimensions to match video
+    updateCanvasDimensions();
 
     // Clear canvas before drawing
+    const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (ctx) {
       if (!drawingUtils) {
@@ -82,7 +119,7 @@ export default function HandViewer() {
         });
       }
     }
-  }, [handLandmarker, webcamRunning, drawingUtils]);
+  }, [handLandmarker, webcamRunning, drawingUtils, updateCanvasDimensions]);
   useLoop(onLoop);
 
   return (
@@ -101,7 +138,7 @@ export default function HandViewer() {
       )}
 
       {handLandmarker && !error && (
-        <div className="w-full h-full relative">
+        <div ref={containerRef} className="w-full h-full relative">
           <video
             ref={videoRef}
             className="w-full max-w-2xl mx-auto rounded-lg bg-black"
