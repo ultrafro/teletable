@@ -57,6 +57,18 @@ export function detectionToHandDetection(
       );
 
     if (isLeft) {
+      const baseVec = createVector(base.x, base.y, base.z);
+      const indexKnuckleVec = createVector(
+        indexKnuckle.x,
+        indexKnuckle.y,
+        indexKnuckle.z
+      );
+      const pinkyKnuckleVec = createVector(
+        pinkyKnuckle.x,
+        pinkyKnuckle.y,
+        pinkyKnuckle.z
+      );
+
       currentHands.left.position.x = x;
       currentHands.left.position.y = y;
       currentHands.left.position.z = z;
@@ -65,15 +77,15 @@ export function detectionToHandDetection(
       currentHands.left.orientation.z = qz;
       currentHands.left.orientation.w = qw;
       currentHands.left.open = open;
-      currentHands.left.base.x = -base.x;
-      currentHands.left.base.y = -base.y;
-      currentHands.left.base.z = base.z;
-      currentHands.left.indexKnuckle.x = -indexKnuckle.x;
-      currentHands.left.indexKnuckle.y = -indexKnuckle.y;
-      currentHands.left.indexKnuckle.z = indexKnuckle.z;
-      currentHands.left.pinkyKnuckle.x = -pinkyKnuckle.x;
-      currentHands.left.pinkyKnuckle.y = -pinkyKnuckle.y;
-      currentHands.left.pinkyKnuckle.z = pinkyKnuckle.z;
+      currentHands.left.base.x = baseVec.x;
+      currentHands.left.base.y = baseVec.y;
+      currentHands.left.base.z = baseVec.z;
+      currentHands.left.indexKnuckle.x = indexKnuckleVec.x;
+      currentHands.left.indexKnuckle.y = indexKnuckleVec.y;
+      currentHands.left.indexKnuckle.z = indexKnuckleVec.z;
+      currentHands.left.pinkyKnuckle.x = pinkyKnuckleVec.x;
+      currentHands.left.pinkyKnuckle.y = pinkyKnuckleVec.y;
+      currentHands.left.pinkyKnuckle.z = pinkyKnuckleVec.z;
       currentHands.left.gripperPosition.x = gx;
       currentHands.left.gripperPosition.y = gy;
       currentHands.left.gripperPosition.z = gz;
@@ -82,6 +94,17 @@ export function detectionToHandDetection(
       currentHands.left.gripperOrientation.z = gqz;
       currentHands.left.gripperOrientation.w = gqw;
     } else {
+      const baseVec = createVector(base.x, base.y, base.z);
+      const indexKnuckleVec = createVector(
+        indexKnuckle.x,
+        indexKnuckle.y,
+        indexKnuckle.z
+      );
+      const pinkyKnuckleVec = createVector(
+        pinkyKnuckle.x,
+        pinkyKnuckle.y,
+        pinkyKnuckle.z
+      );
       currentHands.right.position.x = x;
       currentHands.right.position.y = y;
       currentHands.right.position.z = z;
@@ -90,15 +113,15 @@ export function detectionToHandDetection(
       currentHands.right.orientation.z = qz;
       currentHands.right.orientation.w = qw;
       currentHands.right.open = open;
-      currentHands.right.base.x = -base.x;
-      currentHands.right.base.y = -base.y;
-      currentHands.right.base.z = base.z;
-      currentHands.right.indexKnuckle.x = -indexKnuckle.x;
-      currentHands.right.indexKnuckle.y = -indexKnuckle.y;
-      currentHands.right.indexKnuckle.z = indexKnuckle.z;
-      currentHands.right.pinkyKnuckle.x = -pinkyKnuckle.x;
-      currentHands.right.pinkyKnuckle.y = -pinkyKnuckle.y;
-      currentHands.right.pinkyKnuckle.z = pinkyKnuckle.z;
+      currentHands.right.base.x = baseVec.x;
+      currentHands.right.base.y = baseVec.y;
+      currentHands.right.base.z = baseVec.z;
+      currentHands.right.indexKnuckle.x = indexKnuckleVec.x;
+      currentHands.right.indexKnuckle.y = indexKnuckleVec.y;
+      currentHands.right.indexKnuckle.z = indexKnuckleVec.z;
+      currentHands.right.pinkyKnuckle.x = pinkyKnuckleVec.x;
+      currentHands.right.pinkyKnuckle.y = pinkyKnuckleVec.y;
+      currentHands.right.pinkyKnuckle.z = pinkyKnuckleVec.z;
       currentHands.right.gripperPosition.x = gx;
       currentHands.right.gripperPosition.y = gy;
       currentHands.right.gripperPosition.z = gz;
@@ -125,34 +148,31 @@ function extractTransform(
 ) {
   const useWorldForRotationAndOpen = false;
 
-  const worldBaseVector = new Vector3(-worldBase.x, -worldBase.y, worldBase.z);
-  const worldKnuckleVector = new Vector3(
-    -worldKnuckle.x,
-    -worldKnuckle.y,
+  const worldBaseVector = createVector(worldBase.x, worldBase.y, worldBase.z);
+  const worldKnuckleVector = createVector(
+    worldKnuckle.x,
+    worldKnuckle.y,
     worldKnuckle.z
   );
-  const worldPinkyVector = new Vector3(
-    -worldPinky.x,
-    -worldPinky.y,
+  const worldPinkyVector = createVector(
+    worldPinky.x,
+    worldPinky.y,
     worldPinky.z
   );
-  const worldThumbVector = new Vector3(
-    -worldThumb.x,
-    -worldThumb.y,
+  const worldThumbVector = createVector(
+    worldThumb.x,
+    worldThumb.y,
     worldThumb.z
   );
-  const worldIndexVector = new Vector3(
-    -worldIndex.x,
-    -worldIndex.y,
+  const worldIndexVector = createVector(
+    worldIndex.x,
+    worldIndex.y,
     worldIndex.z
   );
 
-  const nonWorldBaseVector = new Vector3(-base.x, -base.y, base.z);
-  const nonWorldKnuckleVector = new Vector3(-knuckle.x, -knuckle.y, knuckle.z);
-  const nonWorldPinkyVector = new Vector3(-pinky.x, -pinky.y, pinky.z);
-
-  const nonWorldThumbVector = new Vector3(-thumb.x, -thumb.y, thumb.z);
-  const nonWorldIndexVector = new Vector3(-index.x, -index.y, index.z);
+  const nonWorldBaseVector = createVector(base.x, base.y, base.z);
+  const nonWorldKnuckleVector = createVector(knuckle.x, knuckle.y, knuckle.z);
+  const nonWorldPinkyVector = createVector(pinky.x, pinky.y, pinky.z);
 
   const baseVector = useWorldForRotationAndOpen
     ? worldBaseVector
@@ -242,4 +262,26 @@ function extractTransform(
     gqz: gripperQuaternion.z,
     gqw: gripperQuaternion.w,
   };
+}
+
+function createVector(x: number, y: number, z: number) {
+  const tableFlip = true;
+  const newVec = new Vector3(-x, -y, -z);
+
+  const zFactor = 10;
+
+  if (tableFlip) {
+    newVec.x = -x;
+    newVec.y = z;
+    newVec.z = y;
+    // return new Vector3(-x, z, y);
+  }
+  // return new Vector3(-x, -y, z);
+
+  // if (tableFlip) {
+  //   newVec.y *= zFactor;
+  // } else {
+  //   newVec.z *= zFactor;
+  // }
+  return newVec;
 }

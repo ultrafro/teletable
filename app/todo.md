@@ -1,7 +1,7 @@
-[ ] make main page with 3d scene and webcam detector in top right
-[ ] convert detector values to 3d position + orientation
-[ ] convert detector values to open/close levels
-[ ] show basic 3d display of detected
+[x] make main page with 3d scene and webcam detector in top right
+[x] convert detector values to 3d position + orientation
+[x] convert detector values to open/close levels
+[x] show basic 3d display of detected
 [ ] create backend for room
 [ ] create room participants
 [ ] show visualizer of user participants

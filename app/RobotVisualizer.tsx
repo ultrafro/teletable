@@ -36,7 +36,7 @@ export default function RobotVisualizer({
       }}
     >
       <Canvas
-        camera={{ position: [0, 4, 4], fov: 50 }}
+        camera={{ position: [0, 4, 1], fov: 50 }}
         shadows
         style={{
           background: "linear-gradient(to bottom, #e6f3ff 0%, #cce7ff 100%)",
@@ -61,29 +61,29 @@ function Compass() {
     <>
       {/* X-axis - pointing in positive X direction */}
       <Cylinder
-        args={[0.01, 0.01, 1.5, 8]}
-        position={[0.75, 0, 0]}
+        args={[0.002, 0.002, 0.3, 8]}
+        position={[0.15, 0, 0]}
         rotation={[0, 0, Math.PI / 2]}
       >
         <meshStandardMaterial color="#9ca3af" />
       </Cylinder>
 
       {/* Y-axis - pointing in positive Y direction */}
-      <Cylinder args={[0.01, 0.01, 1.5, 8]} position={[0, 0.75, 0]}>
+      <Cylinder args={[0.002, 0.002, 0.3, 8]} position={[0, 0.15, 0]}>
         <meshStandardMaterial color="#6b7280" />
       </Cylinder>
 
       {/* Z-axis - pointing in positive Z direction */}
       <Cylinder
-        args={[0.01, 0.01, 1.5, 8]}
-        position={[0, 0, 0.75]}
+        args={[0.002, 0.002, 0.3, 8]}
+        position={[0, 0, 0.15]}
         rotation={[Math.PI / 2, 0, 0]}
       >
         <meshStandardMaterial color="#3b82f6" />
       </Cylinder>
 
       {/* Origin marker */}
-      <Sphere args={[0.03]} position={[0, 0, 0]}>
+      <Sphere args={[0.006]} position={[0, 0, 0]}>
         <meshStandardMaterial color="#e5e7eb" />
       </Sphere>
     </>
@@ -101,7 +101,7 @@ function Grid() {
       "#6b7280",
       "#9ca3af"
     );
-    grid.position.y = -1;
+    grid.position.y = 0;
     return grid;
   }, []);
 
@@ -141,12 +141,12 @@ function Scene({ currentHands }: { currentHands: BothHands }) {
       {/* Hand Visualizers with subtle colors */}
       <HandVisualizer
         handData={currentHands.left}
-        position={[0, 0, 0]}
+        position={[-1, 0, 0]}
         color="#ef4444"
       />
       <HandVisualizer
         handData={currentHands.right}
-        position={[0, 0, 0]}
+        position={[1, 0, 0]}
         color="#3b82f6"
       />
 
