@@ -41,19 +41,20 @@ export function detectionToHandDetection(
     const worldThumb = worldHand[4];
     const worldIndex = worldHand[8];
 
-    const { x, y, z, qx, qy, qz, qw, open } = extractTransform(
-      base,
-      indexKnuckle,
-      pinkyKnuckle,
-      thumb,
-      index,
-      worldBase,
-      worldIndexKnuckle,
-      worldPinkyKnuckle,
-      worldThumb,
-      worldIndex,
-      isLeft
-    );
+    const { x, y, z, qx, qy, qz, qw, open, gx, gy, gz, gqx, gqy, gqz, gqw } =
+      extractTransform(
+        base,
+        indexKnuckle,
+        pinkyKnuckle,
+        thumb,
+        index,
+        worldBase,
+        worldIndexKnuckle,
+        worldPinkyKnuckle,
+        worldThumb,
+        worldIndex,
+        isLeft
+      );
 
     if (isLeft) {
       currentHands.left.position.x = x;
@@ -73,6 +74,13 @@ export function detectionToHandDetection(
       currentHands.left.pinkyKnuckle.x = -pinkyKnuckle.x;
       currentHands.left.pinkyKnuckle.y = -pinkyKnuckle.y;
       currentHands.left.pinkyKnuckle.z = pinkyKnuckle.z;
+      currentHands.left.gripperPosition.x = gx;
+      currentHands.left.gripperPosition.y = gy;
+      currentHands.left.gripperPosition.z = gz;
+      currentHands.left.gripperOrientation.x = gqx;
+      currentHands.left.gripperOrientation.y = gqy;
+      currentHands.left.gripperOrientation.z = gqz;
+      currentHands.left.gripperOrientation.w = gqw;
     } else {
       currentHands.right.position.x = x;
       currentHands.right.position.y = y;
@@ -91,6 +99,13 @@ export function detectionToHandDetection(
       currentHands.right.pinkyKnuckle.x = -pinkyKnuckle.x;
       currentHands.right.pinkyKnuckle.y = -pinkyKnuckle.y;
       currentHands.right.pinkyKnuckle.z = pinkyKnuckle.z;
+      currentHands.right.gripperPosition.x = gx;
+      currentHands.right.gripperPosition.y = gy;
+      currentHands.right.gripperPosition.z = gz;
+      currentHands.right.gripperOrientation.x = gqx;
+      currentHands.right.gripperOrientation.y = gqy;
+      currentHands.right.gripperOrientation.z = gqz;
+      currentHands.right.gripperOrientation.w = gqw;
     }
   }
 }
@@ -193,11 +208,22 @@ function extractTransform(
   const quaternion = new Quaternion();
   quaternion.setFromRotationMatrix(basisMat);
 
-  const indexVector = new Vector3(worldIndex.x, worldIndex.y, worldIndex.z);
-  const thumbVector = new Vector3(worldThumb.x, worldThumb.y, worldThumb.z);
+  const worldIndexToThumbVector = worldIndexVector
+    .clone()
+    .sub(worldThumbVector);
+  const worldBaseToKnuckleVector = worldBaseVector
+    .clone()
+    .sub(worldKnuckleVector);
+  const open =
+    worldIndexToThumbVector.length() / worldBaseToKnuckleVector.length();
 
-  const indexToThumbVector = indexVector.clone().sub(thumbVector);
-  const open = indexToThumbVector.length() / baseToKnuckleVector.length();
+  //have the gripper be an object slightly forward and slightly up from the center
+  const gripperPosition = centerVector
+    .clone()
+    .add(outVector.multiplyScalar(0.2))
+    .add(upVector.multiplyScalar(isLeft ? 0.2 : -0.2));
+  const gripperQuaternion = new Quaternion();
+  gripperQuaternion.copy(quaternion);
 
   return {
     x: nonWorldCenterVector.x,
@@ -208,5 +234,12 @@ function extractTransform(
     qz: quaternion.z,
     qw: quaternion.w,
     open,
+    gx: gripperPosition.x,
+    gy: gripperPosition.y,
+    gz: gripperPosition.z,
+    gqx: gripperQuaternion.x,
+    gqy: gripperQuaternion.y,
+    gqz: gripperQuaternion.z,
+    gqw: gripperQuaternion.w,
   };
 }

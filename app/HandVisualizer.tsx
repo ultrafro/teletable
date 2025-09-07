@@ -46,6 +46,24 @@ export function HandVisualizer({
         );
 
         handRef.current.quaternion.slerp(targetQuat, 0.1);
+
+        const targetGripperQuat = new Quaternion(
+          handData.gripperOrientation.x,
+          handData.gripperOrientation.y,
+          handData.gripperOrientation.z,
+          handData.gripperOrientation.w
+        );
+
+        if (gripperRef.current) {
+          gripperRef.current.quaternion.slerp(targetGripperQuat, 0.1);
+
+          const targetGripperPos = new Vector3(
+            handData.gripperPosition.x,
+            handData.gripperPosition.y,
+            handData.gripperPosition.z
+          );
+          gripperRef.current.position.lerp(targetGripperPos, 0.1);
+        }
       }
     }
 
@@ -55,7 +73,7 @@ export function HandVisualizer({
       const maxGripperDistance = 0.15;
       const currentDistance = maxGripperDistance * gripperOpenness;
 
-      gripperRef.current.children.forEach((child, index) => {
+      gripperRef.current.children?.[0]?.children?.forEach((child, index) => {
         if (index === 0) {
           // Left gripper finger
           child.position.x = -currentDistance / 2;
@@ -107,42 +125,6 @@ export function HandVisualizer({
             emissiveIntensity={handData.detected ? 0.3 : 0.1}
           />
         </Cylinder> */}
-
-        {/* Gripper visualization */}
-        <group ref={gripperRef} position={[0, 0, 0.2]}>
-          {/* Left gripper finger */}
-          <Box args={[0.035, 0.09, 0.06]} position={[-0.075, 0, 0]}>
-            <meshStandardMaterial
-              color={color}
-              transparent
-              opacity={baseOpacity}
-              emissive={color}
-              emissiveIntensity={handData.detected ? 0.25 : 0.08}
-            />
-          </Box>
-
-          {/* Right gripper finger */}
-          <Box args={[0.035, 0.09, 0.06]} position={[0.075, 0, 0]}>
-            <meshStandardMaterial
-              color={color}
-              transparent
-              opacity={baseOpacity}
-              emissive={color}
-              emissiveIntensity={handData.detected ? 0.25 : 0.08}
-            />
-          </Box>
-
-          {/* Gripper base */}
-          <Box args={[0.14, 0.05, 0.04]} position={[0, -0.06, 0]}>
-            <meshStandardMaterial
-              color={color}
-              transparent
-              opacity={baseOpacity * 0.9}
-              emissive={color}
-              emissiveIntensity={handData.detected ? 0.2 : 0.06}
-            />
-          </Box>
-        </group>
 
         {/* Directional Indicators */}
         {/* Positive X (Right) - Red Arrow */}
@@ -258,6 +240,45 @@ export function HandVisualizer({
           </Text>
         </group>
       </group>
+
+      {/* Gripper visualization */}
+      <group ref={gripperRef} position={[0, 0, 0.2]}>
+        <group rotation={[Math.PI / 2, 0, 0]}>
+          {/* Left gripper finger */}
+          <Box args={[0.035, 0.09, 0.06]} position={[-0.075, 0, 0]}>
+            <meshStandardMaterial
+              color={color}
+              transparent
+              opacity={baseOpacity}
+              emissive={color}
+              emissiveIntensity={handData.detected ? 0.25 : 0.08}
+            />
+          </Box>
+
+          {/* Right gripper finger */}
+          <Box args={[0.035, 0.09, 0.06]} position={[0.075, 0, 0]}>
+            <meshStandardMaterial
+              color={color}
+              transparent
+              opacity={baseOpacity}
+              emissive={color}
+              emissiveIntensity={handData.detected ? 0.25 : 0.08}
+            />
+          </Box>
+
+          {/* Gripper base */}
+          <Box args={[0.14, 0.05, 0.04]} position={[0, -0.06, 0]}>
+            <meshStandardMaterial
+              color={color}
+              transparent
+              opacity={baseOpacity * 0.9}
+              emissive={color}
+              emissiveIntensity={handData.detected ? 0.2 : 0.06}
+            />
+          </Box>
+        </group>
+      </group>
+
       {/* Debug Sphere for the Base - relative positioning */}
       <Sphere
         args={[0.025]}
