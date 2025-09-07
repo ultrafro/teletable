@@ -18,6 +18,7 @@ export default function HandViewer({
 }: {
   onHandsDetected?: (
     hands: NormalizedLandmark[][],
+    worldLandmarks: NormalizedLandmark[][],
     handedness: Category[][]
   ) => void;
 }) {
@@ -104,8 +105,21 @@ export default function HandViewer({
       videoRef.current,
       performance.now()
     );
+
+    // //print average z
+    // const hand0 = results.landmarks?.[0];
+    // if (hand0) {
+    //   const averageZ =
+    //     hand0.reduce((acc, landmark) => acc + landmark.z, 0) / hand0.length;
+    //   // console.log("average z", averageZ);
+    // }
+
     if (results.landmarks && results.landmarks.length > 0) {
-      onHandsDetected?.(results.landmarks, results.handedness);
+      onHandsDetected?.(
+        results.landmarks,
+        results.worldLandmarks,
+        results.handedness
+      );
       for (const landmarks of results.landmarks) {
         drawingUtils?.drawConnectors(
           landmarks,

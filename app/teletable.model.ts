@@ -3,6 +3,9 @@ export type HandDetection = {
   orientation: { x: number; y: number; z: number; w: number };
   open: number;
   detected: boolean;
+  base: { x: number; y: number; z: number };
+  indexKnuckle: { x: number; y: number; z: number };
+  pinkyKnuckle: { x: number; y: number; z: number };
 };
 
 export type BothHands = {
@@ -15,4 +18,7 @@ export const DefaultHandDetection: HandDetection = {
   orientation: { x: 0, y: 0, z: 0, w: 1 },
   open: 0,
   detected: false,
+  base: { x: 0, y: 0, z: 0 },
+  indexKnuckle: { x: 0, y: 0, z: 0 },
+  pinkyKnuckle: { x: 0, y: 0, z: 0 },
 };

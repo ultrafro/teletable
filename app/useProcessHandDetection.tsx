@@ -5,8 +5,12 @@ import { detectionToHandDetection } from "./detectionToHandDetection";
 
 export function useProcessHandDetection(currentHands: BothHands) {
   return useCallback(
-    (hands: NormalizedLandmark[][], handedness: Category[][]) => {
-      detectionToHandDetection(hands, currentHands, handedness);
+    (
+      hands: NormalizedLandmark[][],
+      worldLandmarks: NormalizedLandmark[][],
+      handedness: Category[][]
+    ) => {
+      detectionToHandDetection(hands, worldLandmarks, currentHands, handedness);
     },
     [currentHands]
   );

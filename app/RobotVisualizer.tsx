@@ -55,6 +55,55 @@ export default function RobotVisualizer({
   );
 }
 
+// Compass Component
+function Compass() {
+  return (
+    <>
+      {/* X-axis (Red) - pointing in positive X direction */}
+      <Cylinder
+        args={[0.02, 0.02, 2, 8]}
+        position={[1, 0, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+      >
+        <meshStandardMaterial color="#ff0000" />
+      </Cylinder>
+
+      {/* Y-axis (Green) - pointing in positive Y direction */}
+      <Cylinder args={[0.02, 0.02, 2, 8]} position={[0, 1, 0]}>
+        <meshStandardMaterial color="#00ff00" />
+      </Cylinder>
+
+      {/* Z-axis (Blue) - pointing in positive Z direction */}
+      <Cylinder
+        args={[0.02, 0.02, 2, 8]}
+        position={[0, 0, 1]}
+        rotation={[Math.PI / 2, 0, 0]}
+      >
+        <meshStandardMaterial color="#0000ff" />
+      </Cylinder>
+
+      {/* Origin marker */}
+      <Sphere args={[0.05]} position={[0, 0, 0]}>
+        <meshStandardMaterial color="#ffffff" />
+      </Sphere>
+
+      {/* Axis labels */}
+      <mesh position={[2.2, 0, 0]}>
+        <planeGeometry args={[0.3, 0.3]} />
+        <meshBasicMaterial color="#ff0000" transparent opacity={0.8} />
+      </mesh>
+      <mesh position={[0, 2.2, 0]}>
+        <planeGeometry args={[0.3, 0.3]} />
+        <meshBasicMaterial color="#00ff00" transparent opacity={0.8} />
+      </mesh>
+      <mesh position={[0, 0, 2.2]}>
+        <planeGeometry args={[0.3, 0.3]} />
+        <meshBasicMaterial color="#0000ff" transparent opacity={0.8} />
+      </mesh>
+    </>
+  );
+}
+
 // Main Scene Component
 function Scene({ currentHands }: { currentHands: BothHands }) {
   return (
@@ -78,6 +127,9 @@ function Scene({ currentHands }: { currentHands: BothHands }) {
         intensity={0.3}
         color="#f0f4f8"
       />
+
+      {/* Compass at origin */}
+      <Compass />
 
       {/* Two Robot Arms */}
       <RobotArmVisualizer
