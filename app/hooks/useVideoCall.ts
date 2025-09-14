@@ -87,6 +87,24 @@ export function useVideoCall(
       }
     };
 
+    peerJS
+      .connect(hostPeerId)
+      .then((dataConnection) => {
+        if (dataConnection) {
+          console.log(
+            hostPeerId,
+            "Data connection established for hand tracking"
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(
+          hostPeerId,
+          "Error establishing data connection for hand tracking",
+          error
+        );
+      });
+
     // Add a small delay before first attempt to ensure host is ready
     setTimeout(() => attemptCall(), 1000);
   }, [hostPeerId, peerJS]);

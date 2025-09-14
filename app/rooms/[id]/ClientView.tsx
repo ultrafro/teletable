@@ -14,6 +14,7 @@ import { BothHands, DefaultHandDetection } from "@/app/teletable.model";
 import { useProcessHandDetection } from "@/app/useProcessHandDetection";
 import RobotVisualizer from "@/app/RobotVisualizer";
 import HandViewer from "@/app/HandViewer";
+import { useBroadcastHands } from "./useBroadcastHands";
 
 export default function ClientView({
   roomData,
@@ -32,6 +33,11 @@ export default function ClientView({
   }, []);
 
   const onRawDetection = useProcessHandDetection(currentHands);
+  const onRawDetectionWithBroadcast = useBroadcastHands(
+    onRawDetection,
+    peerJS,
+    currentHands
+  );
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const isInControl = user?.id === roomData.currentControllingClientId;
@@ -270,7 +276,7 @@ export default function ClientView({
           <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-1 w-full h-full relative">
             <div className="z-10 pointer-events-none w-[300px] h-[300px]">
               <div className="pointer-events-auto w-full h-full">
-                <HandViewer onHandsDetected={onRawDetection} />
+                <HandViewer onHandsDetected={onRawDetectionWithBroadcast} />
               </div>
             </div>
           </div>

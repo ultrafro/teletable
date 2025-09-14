@@ -1,9 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useCamera } from "@/app/hooks/useCamera";
 import { RoomData } from "./roomUI.model";
 import { UsePeerJSResult } from "@/app/hooks/usePeerJS";
 import { useAuth } from "@/app/lib/auth";
 import { MediaConnection } from "peerjs";
+import { BothHands, DefaultHandDetection } from "@/app/teletable.model";
+import { useUpdateHandsFromClientData } from "./useUpdateHandsFromClient";
+import RobotVisualizer from "@/app/RobotVisualizer";
 
 export default function HostView({
   roomData,
@@ -18,6 +21,14 @@ export default function HostView({
   const [isInitializingStream, setIsInitializingStream] = useState(false);
   const [isEndingStream, setIsEndingStream] = useState(false);
   const [isProcessingRequest, setIsProcessingRequest] = useState(false);
+  const currentHands = useMemo<BothHands>(() => {
+    return {
+      left: JSON.parse(JSON.stringify(DefaultHandDetection)),
+      right: JSON.parse(JSON.stringify(DefaultHandDetection)),
+    };
+  }, []);
+
+  useUpdateHandsFromClientData(currentHands, peerJS);
 
   // Display camera stream in video element when available
   useEffect(() => {
@@ -487,14 +498,7 @@ export default function HostView({
 
           {/* Robot Control Preview Section */}
           <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Robot Control Preview
-            </h3>
-            <div className="h-32 bg-background rounded-lg border border-foreground/10 flex items-center justify-center">
-              <p className="text-foreground/50 text-sm">
-                Robot control preview
-              </p>
-            </div>
+            <RobotVisualizer currentHands={currentHands} />
           </div>
         </div>
       </div>
