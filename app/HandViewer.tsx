@@ -167,7 +167,7 @@ export default function HandViewer({
           />
 
           {!webcamRunning && (
-            <div className="w-full max-w-2xl mx-auto h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+            <div className="w-full mx-auto h-full bg-gray-200 rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <div className="text-6xl mb-4">👋🏿</div>
                 <button

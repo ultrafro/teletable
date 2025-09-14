@@ -4,12 +4,16 @@ import {
   ClientRoomInfoResponse,
   RoomData,
 } from "./roomUI.model";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { UsePeerJSResult } from "@/app/hooks/usePeerJS";
 import { useControlRequest } from "@/app/hooks/useControlRequest";
 import { useVideoCall } from "@/app/hooks/useVideoCall";
 import { useConnectionRefresh } from "@/app/hooks/useConnectionRefresh";
+import { BothHands, DefaultHandDetection } from "@/app/teletable.model";
+import { useProcessHandDetection } from "@/app/useProcessHandDetection";
+import RobotVisualizer from "@/app/RobotVisualizer";
+import HandViewer from "@/app/HandViewer";
 
 export default function ClientView({
   roomData,
@@ -20,8 +24,16 @@ export default function ClientView({
   peerJS: UsePeerJSResult;
   user: User | null;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const currentHands = useMemo<BothHands>(() => {
+    return {
+      left: JSON.parse(JSON.stringify(DefaultHandDetection)),
+      right: JSON.parse(JSON.stringify(DefaultHandDetection)),
+    };
+  }, []);
 
+  const onRawDetection = useProcessHandDetection(currentHands);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
   const isInControl = user?.id === roomData.currentControllingClientId;
 
   // Custom hooks
@@ -168,8 +180,8 @@ export default function ClientView({
       </div>
 
       {/* Right side - Control panel column */}
-      <div className="w-80 p-6 border-l border-foreground/10 min-h-0">
-        <div className="h-full flex flex-col space-y-6 overflow-y-auto">
+      <div className="w-[400px] p-6 border-l border-foreground/10 min-h-0">
+        <div className="h-full flex flex-col space-y-6 overflow-y-auto relative">
           {/* Connection Status Section */}
           <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4">
             <h3 className="text-lg font-semibold text-foreground mb-4">
@@ -246,27 +258,17 @@ export default function ClientView({
           </div>
 
           {/* Hand Tracking Section */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Hand Tracking
-            </h3>
-            <div className="h-32 bg-background rounded-lg border border-foreground/10 flex items-center justify-center">
-              <p className="text-foreground/50 text-sm">
-                Hand tracking visualization
-              </p>
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-1 w-full h-full relative">
+            <div className="z-10 pointer-events-none w-[300px] h-[300px]">
+              <div className="pointer-events-auto w-full h-full">
+                <HandViewer onHandsDetected={onRawDetection} />
+              </div>
             </div>
           </div>
 
           {/* Robot Control Preview Section */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Robot Control
-            </h3>
-            <div className="h-32 bg-background rounded-lg border border-foreground/10 flex items-center justify-center">
-              <p className="text-foreground/50 text-sm">
-                Robot control preview
-              </p>
-            </div>
+          <div className="bg-foreground/5 h-[400px] rounded-lg border border-foreground/10 p-4 flex-1">
+            <RobotVisualizer currentHands={currentHands} />
           </div>
         </div>
       </div>
