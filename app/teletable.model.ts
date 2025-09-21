@@ -15,8 +15,20 @@ export type BothHands = {
   right: HandDetection;
 };
 
-export const DefaultHandDetection: HandDetection = {
-  position: { x: 0, y: 0, z: 0 },
+export const DefaultLeftHandDetection: HandDetection = {
+  position: { x: -1, y: 0, z: 0 },
+  orientation: { x: 0, y: 0, z: 0, w: 1 },
+  open: 0,
+  detected: false,
+  base: { x: 0, y: 0, z: 0 },
+  indexKnuckle: { x: 0, y: 0, z: 0 },
+  pinkyKnuckle: { x: 0, y: 0, z: 0 },
+  gripperPosition: { x: 0, y: 0, z: 0 },
+  gripperOrientation: { x: 0, y: 0, z: 0, w: 1 },
+};
+
+export const DefaultRightHandDetection: HandDetection = {
+  position: { x: 1, y: 0, z: 0 },
   orientation: { x: 0, y: 0, z: 0, w: 1 },
   open: 0,
   detected: false,

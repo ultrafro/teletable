@@ -2,15 +2,19 @@
 import Image from "next/image";
 import HandViewer from "./HandViewer";
 import RobotVisualizer from "./RobotVisualizer";
-import { DefaultHandDetection, BothHands } from "./teletable.model";
+import {
+  DefaultLeftHandDetection,
+  DefaultRightHandDetection,
+  BothHands,
+} from "./teletable.model";
 import { useMemo } from "react";
 import { useProcessHandDetection } from "./useProcessHandDetection";
 
 export default function Home() {
   const currentHands = useMemo<BothHands>(() => {
     return {
-      left: JSON.parse(JSON.stringify(DefaultHandDetection)),
-      right: JSON.parse(JSON.stringify(DefaultHandDetection)),
+      left: JSON.parse(JSON.stringify(DefaultLeftHandDetection)),
+      right: JSON.parse(JSON.stringify(DefaultRightHandDetection)),
     };
   }, []);
 

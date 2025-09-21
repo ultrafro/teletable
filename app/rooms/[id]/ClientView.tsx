@@ -10,7 +10,11 @@ import { UsePeerJSResult } from "@/app/hooks/usePeerJS";
 import { useControlRequest } from "@/app/hooks/useControlRequest";
 import { useVideoCall } from "@/app/hooks/useVideoCall";
 import { useConnectionRefresh } from "@/app/hooks/useConnectionRefresh";
-import { BothHands, DefaultHandDetection } from "@/app/teletable.model";
+import {
+  BothHands,
+  DefaultLeftHandDetection,
+  DefaultRightHandDetection,
+} from "@/app/teletable.model";
 import { useProcessHandDetection } from "@/app/useProcessHandDetection";
 import RobotVisualizer from "@/app/RobotVisualizer";
 import HandViewer from "@/app/HandViewer";
@@ -27,8 +31,8 @@ export default function ClientView({
 }) {
   const currentHands = useMemo<BothHands>(() => {
     return {
-      left: JSON.parse(JSON.stringify(DefaultHandDetection)),
-      right: JSON.parse(JSON.stringify(DefaultHandDetection)),
+      left: JSON.parse(JSON.stringify(DefaultLeftHandDetection)),
+      right: JSON.parse(JSON.stringify(DefaultRightHandDetection)),
     };
   }, []);
 
