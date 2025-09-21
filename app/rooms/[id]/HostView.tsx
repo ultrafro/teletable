@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useCamera } from "@/app/hooks/useCamera";
 import { RoomData } from "./roomUI.model";
 import { UsePeerJSResult } from "@/app/hooks/usePeerJS";
@@ -6,6 +6,7 @@ import { useAuth } from "@/app/lib/auth";
 import { MediaConnection } from "peerjs";
 import { BothHands, DefaultHandDetection } from "@/app/teletable.model";
 import { useUpdateHandsFromClientData } from "./useUpdateHandsFromClient";
+import { useRobotWebSocket } from "@/app/hooks/useRobotWebSocket";
 import RobotVisualizer from "@/app/RobotVisualizer";
 
 export default function HostView({
@@ -28,7 +29,21 @@ export default function HostView({
     };
   }, []);
 
-  useUpdateHandsFromClientData(currentHands, peerJS);
+  // Initialize robot WebSocket connection
+  const robotWS = useRobotWebSocket();
+
+  // Callback to handle hand updates from clients
+  const handleHandsUpdate = useCallback(
+    (hands: BothHands) => {
+      // Send hand data to robot server if connected
+      if (robotWS.isConnected) {
+        robotWS.sendHandData(hands);
+      }
+    },
+    [robotWS]
+  );
+
+  useUpdateHandsFromClientData(currentHands, peerJS, handleHandsUpdate);
 
   // Display camera stream in video element when available
   useEffect(() => {
@@ -413,6 +428,78 @@ export default function HostView({
                     {peerJS.mediaConnections.length} active
                   </span>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-foreground/70">Robot Server</span>
+                <div className="flex items-center space-x-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      robotWS.isConnected
+                        ? "bg-green-500"
+                        : robotWS.isConnecting
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                    }`}
+                  ></div>
+                  <span className="text-sm">
+                    {robotWS.isConnected
+                      ? "Connected"
+                      : robotWS.isConnecting
+                      ? "Connecting..."
+                      : "Disconnected"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Robot Server Control Section */}
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Robot Server Control
+            </h3>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                {!robotWS.isConnected ? (
+                  <button
+                    onClick={robotWS.connect}
+                    disabled={robotWS.isConnecting}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {robotWS.isConnecting ? "Connecting..." : "Connect"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={robotWS.disconnect}
+                    className="flex-1 px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                  >
+                    Disconnect
+                  </button>
+                )}
+                <button
+                  onClick={robotWS.reconnect}
+                  disabled={robotWS.isConnecting}
+                  className="px-3 py-2 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Reconnect
+                </button>
+              </div>
+
+              {robotWS.lastError && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
+                  <strong>Connection Error:</strong> {robotWS.lastError}
+                </div>
+              )}
+
+              <div className="text-xs text-foreground/60">
+                <p>
+                  <strong>Default:</strong> ws://localhost:8765
+                </p>
+                <p>
+                  Make sure your Python robot server is running and listening on
+                  this port.
+                </p>
               </div>
             </div>
           </div>

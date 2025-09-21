@@ -1,0 +1,27 @@
+[project]
+name = "teletable-robot-server"
+version = "0.1.0"
+description = "WebSocket server for receiving hand tracking data from TeleTable and controlling robots"
+authors = [{name = "TeleTable Developer"}]
+readme = "README.md"
+requires-python = ">=3.8.1"
+dependencies = [
+    "websockets>=12.0",
+]
+
+[project.scripts]
+robot-server = "robot_server.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/robot_server"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0", 
+    "flake8>=6.0",
+]
