@@ -4,9 +4,15 @@ version = "0.1.0"
 description = "WebSocket server for receiving hand tracking data from TeleTable and controlling robots"
 authors = [{name = "TeleTable Developer"}]
 readme = "README.md"
-requires-python = ">=3.8.1"
+requires-python = ">=3.10"
 dependencies = [
     "websockets>=12.0",
+    "pyserial>=3.5",
+    "numpy>=1.21.0",
+    "lerobot[feetech,kinematics]",
+    "evdev-binary",  # Add this explicitly
+    "pyudev>=0.24.0",  # For better Linux device detection
+    "psutil>=5.9.0",   # For system information and device detection
 ]
 
 [project.scripts]

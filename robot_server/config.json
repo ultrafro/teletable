@@ -1,0 +1,14 @@
+{
+  "robots": [
+    {
+      "folder": "src/robot_server/robots/follower_1",
+      "device": "/dev/ttyACM0",
+      "urdf": "src/robot_server/robots/follower_1/calib.urdf",
+      "calibration": "src/robot_server/robots/follower_1/calibration.json"
+    }
+  ],
+  "server": {
+    "host": "localhost",
+    "port": 9000
+  }
+}

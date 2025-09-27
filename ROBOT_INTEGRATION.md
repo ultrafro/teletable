@@ -1,6 +1,6 @@
-# TeleTable Robot Integration (Poetry Version)
+# TeleTable Robot Integration (UV Version)
 
-This document explains how to set up and use the Poetry-based robot WebSocket integration with TeleTable.
+This document explains how to set up and use the UV-based robot WebSocket integration with TeleTable.
 
 ## Overview
 
@@ -21,30 +21,33 @@ The TeleTable host can now relay incoming hand position data to a local Python W
 
 ### Prerequisites
 
-- **Python 3.8+**: Make sure Python is installed and in your PATH
-- **Poetry**: For dependency management and virtual environments
+- **Python 3.10+**: Make sure Python is installed and in your PATH
+- **UV**: For dependency management and virtual environments
 
-### Install Poetry
+### Install UV
 
-If you don't have Poetry installed:
+If you don't have UV installed:
 
 **Windows (PowerShell):**
+
 ```powershell
-(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 **macOS/Linux:**
+
 ```bash
-curl -sSL https://install.python-poetry.org | python3 -
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Visit [python-poetry.org](https://python-poetry.org/docs/#installation) for more installation options.
+Visit [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/) for more installation options.
 
 ### 1. All-in-One Setup & Run (Recommended)
 
-Use the Poetry-based scripts that automatically handle setup AND start the server:
+Use the UV-based scripts that automatically handle setup AND start the server:
 
 **Windows:**
+
 ```bash
 # Double-click or run from command prompt:
 run_robot_server.bat
@@ -54,6 +57,7 @@ run_robot_server.bat --port 9999 --debug
 ```
 
 **macOS/Linux:**
+
 ```bash
 # Make executable and run:
 chmod +x run_robot_server.sh
@@ -64,10 +68,11 @@ chmod +x run_robot_server.sh
 ```
 
 These scripts will:
-- ✅ Check if Python and Poetry are installed
+
+- ✅ Check if Python and UV are installed
 - ✅ Navigate to the `robot_server/` directory
-- ✅ Install dependencies with Poetry (if not already installed)
-- ✅ Run the server in Poetry's managed virtual environment
+- ✅ Install dependencies with UV (if not already installed)
+- ✅ Run the server in UV's managed virtual environment
 
 ### 2. Manual Setup & Run (Alternative)
 
@@ -78,17 +83,19 @@ If you prefer manual control:
 cd robot_server
 
 # Install dependencies (creates virtual environment automatically)
-poetry install
+uv sync
+
+# For real robot support, also install LeRobot (optional)
+uv sync --group robot-hardware
 
 # Run the server
-poetry run robot-server
+uv run robot-server
 
-# Or activate the shell and run directly
-poetry shell
-robot-server
+# Or run with module syntax
+uv run robot_server.main
 
 # With custom options
-poetry run robot-server --host 0.0.0.0 --port 9999 --debug
+uv run robot-server --host 0.0.0.0 --port 9999 --debug
 ```
 
 ### 3. Start TeleTable Host
@@ -107,6 +114,7 @@ poetry run robot-server --host 0.0.0.0 --port 9999 --debug
 ## Project Structure
 
 After setup, your project will contain:
+
 ```
 teletable/
 ├── robot_server/           # Robot server package directory
@@ -114,9 +122,9 @@ teletable/
 │   │   └── robot_server/
 │   │       ├── __init__.py
 │   │       └── main.py     # Main server script
-│   ├── pyproject.toml      # Poetry configuration & dependencies
+│   ├── pyproject.toml      # UV configuration & dependencies
 │   ├── README.md           # Robot server specific docs
-│   └── poetry.lock         # Lock file (created after install)
+│   └── uv.lock             # Lock file (created after install)
 ├── run_robot_server.*      # Convenience scripts
 └── ...                     # Other TeleTable files
 ```
@@ -139,11 +147,11 @@ class RobotController:
         position = hand_data.get('position', {})
         orientation = hand_data.get('orientation', {})
         openness = hand_data.get('open', 0)
-        
+
         # Replace with your robot control logic
         # self.robot.move_left_arm(x=position['x'], y=position['y'], z=position['z'])
         # self.robot.set_left_gripper(openness)
-    
+
     def control_right_arm(self, hand_data):
         # Similar implementation for right arm
         pass
@@ -160,14 +168,14 @@ The robot server receives hand data in the following format:
   "hands": {
     "left": {
       "detected": true,
-      "position": {"x": 0.1, "y": 0.2, "z": 0.3},
-      "orientation": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "position": { "x": 0.1, "y": 0.2, "z": 0.3 },
+      "orientation": { "x": 0, "y": 0, "z": 0, "w": 1 },
       "open": 0.8,
-      "base": {"x": 0.1, "y": 0.2, "z": 0.3},
-      "indexKnuckle": {"x": 0.1, "y": 0.2, "z": 0.3},
-      "pinkyKnuckle": {"x": 0.1, "y": 0.2, "z": 0.3},
-      "gripperPosition": {"x": 0.1, "y": 0.2, "z": 0.3},
-      "gripperOrientation": {"x": 0, "y": 0, "z": 0, "w": 1}
+      "base": { "x": 0.1, "y": 0.2, "z": 0.3 },
+      "indexKnuckle": { "x": 0.1, "y": 0.2, "z": 0.3 },
+      "pinkyKnuckle": { "x": 0.1, "y": 0.2, "z": 0.3 },
+      "gripperPosition": { "x": 0.1, "y": 0.2, "z": 0.3 },
+      "gripperOrientation": { "x": 0, "y": 0, "z": 0, "w": 1 }
     },
     "right": {
       // Same format as left hand
@@ -193,6 +201,7 @@ The robot server receives hand data in the following format:
 The TeleTable host interface includes:
 
 ### Connection Status Panel
+
 - **Room Status**: Whether the room is ready for control
 - **PeerJS**: Connection status to PeerJS server
 - **Camera**: Whether the host camera is active
@@ -200,6 +209,7 @@ The TeleTable host interface includes:
 - **Robot Server**: WebSocket connection status to the Python server
 
 ### Robot Server Control Panel
+
 - **Connect/Disconnect**: Manual control of WebSocket connection
 - **Reconnect**: Force reconnection attempt
 - **Error Display**: Shows connection errors and troubleshooting info
@@ -211,54 +221,56 @@ The TeleTable host interface includes:
 
 ```bash
 cd robot_server
-poetry add numpy  # Example: add NumPy for calculations
-poetry add --group dev pytest  # Add development dependency
+uv add numpy  # Example: add NumPy for calculations
+uv add --dev pytest  # Add development dependency
 ```
 
 ### Running Tests
 
 ```bash
 cd robot_server
-poetry run pytest
+uv run pytest
 ```
 
 ### Code Formatting
 
 ```bash
 cd robot_server
-poetry run black src/
-poetry run flake8 src/
+uv run black src/
+uv run flake8 src/
 ```
 
 ## Troubleshooting
 
-### Poetry Not Found
+### UV Not Found
 
-1. **Install Poetry** using the commands above
+1. **Install UV** using the commands above
 2. **Restart your terminal** after installation
-3. **Check installation**: `poetry --version`
+3. **Check installation**: `uv --version`
 
 ### Robot Server Won't Connect
 
 1. **Check if Python server is running**:
+
    ```bash
    ./run_robot_server.bat  # or .sh
    ```
 
 2. **Verify port is available**:
+
    ```bash
    # On Windows
    netstat -an | findstr :8765
-   
+
    # On Linux/Mac
    lsof -i :8765
    ```
 
-3. **Check Poetry installation**:
+3. **Check UV installation**:
    ```bash
    cd robot_server
-   poetry install
-   poetry run robot-server
+   uv sync
+   uv run robot-server
    ```
 
 ### Dependencies Issues
@@ -266,11 +278,11 @@ poetry run flake8 src/
 ```bash
 cd robot_server
 # Remove lock file and reinstall
-rm poetry.lock
-poetry install
+rm uv.lock
+uv sync
 ```
 
-## Benefits of Poetry Setup
+## Benefits of UV Setup
 
 - ✅ **Dependency Isolation**: Virtual environment managed automatically
 - ✅ **Reproducible Builds**: Lock file ensures consistent dependency versions
@@ -278,3 +290,4 @@ poetry install
 - ✅ **Development Tools**: Built-in support for testing, linting, and formatting
 - ✅ **Cross-Platform**: Works consistently across Windows, macOS, and Linux
 - ✅ **Professional Structure**: Industry-standard Python project layout
+- ✅ **Fast Performance**: UV is significantly faster than Poetry for most operations
