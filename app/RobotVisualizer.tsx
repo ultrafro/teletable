@@ -13,6 +13,7 @@ import { BothHands, HandDetection } from "./teletable.model";
 import * as THREE from "three";
 import { RobotArmVisualizer } from "./RobotArmVisualizer";
 import { HandVisualizer } from "./HandVisualizer";
+import IKVisualizer from "./IKVisualizer";
 
 export default function RobotVisualizer({
   currentHands,
@@ -248,6 +249,8 @@ function Scene({
         position={[1, 0, 0]}
         color="#3b82f6"
       />
+
+      <IKVisualizer currentHands={currentHands} />
 
       {/* Direct Control Pivot Controls */}
       {showDirectControl && directControlHands && (

@@ -26,6 +26,9 @@ importers:
       '@types/three':
         specifier: ^0.180.0
         version: 0.180.0
+      closed-chain-ik-tiny:
+        specifier: ^0.0.7
+        version: 0.0.7
       nanoid:
         specifier: ^5.1.5
         version: 5.1.5
@@ -44,6 +47,9 @@ importers:
       three:
         specifier: ^0.180.0
         version: 0.180.0
+      three-ik:
+        specifier: ^0.1.0
+        version: 0.1.0(three@0.180.0)
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -522,6 +528,9 @@ packages:
   client-only@0.0.1:
     resolution: {integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==}
 
+  closed-chain-ik-tiny@0.0.7:
+    resolution: {integrity: sha512-I4rNFREDXtlt+bFQYpamU/0EhaAfQHA9JRaGKhc3v2CQFyg7STdHMqD1rbCLNK673jEfMmPY6M6KHH6i/68Rxg==}
+
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
@@ -570,6 +579,9 @@ packages:
 
   fflate@0.8.2:
     resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
+
+  gl-matrix@3.4.4:
+    resolution: {integrity: sha512-latSnyDNt/8zYUB6VIJ6PCh2jBjJX6gnDsoCZ7LyW7GkqrD51EWwa9qCoGixj8YqBtETQK/xY7OmpTF8xz1DdQ==}
 
   glsl-noise@0.0.0:
     resolution: {integrity: sha512-b/ZCF6amfAUb7dJM/MxRs7AetQEahYzJ8PtgfrmEdtw6uyGOr+ZSGtgjFm6mfsBkxJ4d2W7kg+Nlqzqvn3Bc0w==}
@@ -670,6 +682,9 @@ packages:
   lightningcss@1.30.1:
     resolution: {integrity: sha512-xi6IyHML+c9+Q3W0S4fCQJOym42pyurFiJUHEcEyHS0CeKzia4yZDEsLlqOFykxOdHpNy0NmvVO31vcSqAxJCg==}
     engines: {node: '>= 12.0.0'}
+
+  linear-solve@1.2.1:
+    resolution: {integrity: sha512-YysEUwkRRtxvjJto9kArBJdH/NCnakI8YOrSDD8yK1EV3+t8UjNzqdCQSU+FaNtYLTCBdlI7fwV6Fbn1EEyLew==}
 
   maath@0.10.8:
     resolution: {integrity: sha512-tRvbDF0Pgqz+9XUa4jjfgAQ8/aPKmQdWXilFu2tMy4GWj4NOsx99HlULO4IeREfbO3a0sA145DZYyvXPkybm0g==}
@@ -849,6 +864,9 @@ packages:
     peerDependencies:
       react: '>=17.0'
 
+  svd-js@1.1.1:
+    resolution: {integrity: sha512-3Mpd08lu7HPD/aDMnHvhLBKHLdoUv+w9411ZLGjZYIR51e05CFNAY+MYMXLs7leo6jljZ8PGkoCSI1I4lF1Z4Q==}
+
   tailwindcss@4.1.12:
     resolution: {integrity: sha512-DzFtxOi+7NsFf7DBtI3BJsynR+0Yp6etH+nRPTbpWnS2pZBaSksv/JGctNwSWzbFjp0vxSqknaUylseZqMDGrA==}
 
@@ -859,6 +877,11 @@ packages:
   tar@7.4.3:
     resolution: {integrity: sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==}
     engines: {node: '>=18'}
+
+  three-ik@0.1.0:
+    resolution: {integrity: sha512-GwYgVSegvRI9/i/YFKxnIT4bn9gN5GtrZbgRRhxvihUccxYfjryrt9Gys5Bqn+ljbM/uF4a8wZETxdLVNAT+fw==}
+    peerDependencies:
+      three: '*'
 
   three-mesh-bvh@0.8.3:
     resolution: {integrity: sha512-4G5lBaF+g2auKX3P0yqx+MJC6oVt6sB5k+CchS6Ob0qvH0YIhuUk1eYr7ktsIpY+albCqE80/FVQGV190PmiAg==}
@@ -1394,6 +1417,12 @@ snapshots:
 
   client-only@0.0.1: {}
 
+  closed-chain-ik-tiny@0.0.7:
+    dependencies:
+      gl-matrix: 3.4.4
+      linear-solve: 1.2.1
+      svd-js: 1.1.1
+
   color-convert@2.0.1:
     dependencies:
       color-name: 1.1.4
@@ -1444,6 +1473,8 @@ snapshots:
   fflate@0.6.10: {}
 
   fflate@0.8.2: {}
+
+  gl-matrix@3.4.4: {}
 
   glsl-noise@0.0.0: {}
 
@@ -1519,6 +1550,8 @@ snapshots:
       lightningcss-linux-x64-musl: 1.30.1
       lightningcss-win32-arm64-msvc: 1.30.1
       lightningcss-win32-x64-msvc: 1.30.1
+
+  linear-solve@1.2.1: {}
 
   maath@0.10.8(@types/three@0.180.0)(three@0.180.0):
     dependencies:
@@ -1690,6 +1723,8 @@ snapshots:
     dependencies:
       react: 19.1.0
 
+  svd-js@1.1.1: {}
+
   tailwindcss@4.1.12: {}
 
   tapable@2.2.3: {}
@@ -1702,6 +1737,10 @@ snapshots:
       minizlib: 3.0.2
       mkdirp: 3.0.1
       yallist: 5.0.0
+
+  three-ik@0.1.0(three@0.180.0):
+    dependencies:
+      three: 0.180.0
 
   three-mesh-bvh@0.8.3(three@0.180.0):
     dependencies:
