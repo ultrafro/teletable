@@ -11,12 +11,18 @@
 [x] display 3d display of detected on the host page
 [x] figure out IK of host
 [x] figure out connectivity of robot to host
-[ ] figure out webcam broadcasting on host
-[ ] show host webcam broadcasting on the client
 
 [x] add wrist control
 [x] add gripper control
-[ ] connect control test page to host page
+
+[ ] add remote control capacity to host view page
+[ ] reorganize host view page so it is mostly control, and camera feed in top right
+[ ] make client page work with new direct control
+[ ] reorganize client page so it is moslty control and camera feed in top right
+
+Later (don't do this now):
+[ ] figure out webcam broadcasting on host
+[ ] show host webcam broadcasting on the client
 [ ] build second robot
 [ ] make multirobot work from test page
 

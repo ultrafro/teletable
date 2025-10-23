@@ -37,42 +37,54 @@ export default function HostView({
   // Initialize robot WebSocket connection
   const robotWS = useRobotWebSocket();
 
-  // Callback to handle hand updates from clients
-  const handleHandsUpdate = useCallback(
-    (hands: BothHands) => {
-      // Ignore client updates when test control is enabled
-      if (isTestControlEnabled) {
+  const handleJointValuesUpdate = useCallback(
+    (robotId: string, jointValues: number[]) => {
+      //console.log("robotWS.isConnected", robotWS.isConnected);
+      if (!robotWS.isConnected) {
         return;
       }
-
-      // Update current hands state with client data
-      //setCurrentHands(hands);
-      copyHands(hands, currentHands);
-
-      // Send hand data to robot server if connected
-      if (robotWS.isConnected) {
-        robotWS.sendHandData(hands);
-      }
+      //console.log("Joint values for", robotId, ":", jointValues);
+      robotWS.sendHandData(robotId, [...jointValues, 20]);
     },
-    [robotWS, isTestControlEnabled]
+    [robotWS.isConnected, robotWS.sendHandData]
   );
 
-  useUpdateHandsFromClientData(currentHands, peerJS, handleHandsUpdate);
+  // // Callback to handle hand updates from clients
+  // const handleHandsUpdate = useCallback(
+  //   (hands: BothHands) => {
+  //     // Ignore client updates when test control is enabled
+  //     if (isTestControlEnabled) {
+  //       return;
+  //     }
 
-  // Callback to handle direct control updates from the robot visualizer
-  const handleDirectControlUpdate = useCallback(
-    (hands: BothHands) => {
-      if (isTestControlEnabled) {
-        copyHands(hands, currentHands);
+  //     // Update current hands state with client data
+  //     //setCurrentHands(hands);
+  //     copyHands(hands, currentHands);
 
-        // Send hand data to robot server if connected
-        if (robotWS.isConnected) {
-          robotWS.sendHandData(hands);
-        }
-      }
-    },
-    [isTestControlEnabled, robotWS]
-  );
+  //     // Send hand data to robot server if connected
+  //     if (robotWS.isConnected) {
+  //       robotWS.sendHandData(hands);
+  //     }
+  //   },
+  //   [robotWS, isTestControlEnabled]
+  // );
+
+  // useUpdateHandsFromClientData(currentHands, peerJS, handleHandsUpdate);
+
+  // // Callback to handle direct control updates from the robot visualizer
+  // const handleDirectControlUpdate = useCallback(
+  //   (hands: BothHands) => {
+  //     if (isTestControlEnabled) {
+  //       copyHands(hands, currentHands);
+
+  //       // Send hand data to robot server if connected
+  //       if (robotWS.isConnected) {
+  //         robotWS.sendHandData(hands);
+  //       }
+  //     }
+  //   },
+  //   [isTestControlEnabled, robotWS]
+  // );
 
   // Display camera stream in video element when available
   useEffect(() => {
@@ -444,8 +456,8 @@ export default function HostView({
           </div>
           <RobotVisualizer
             currentHands={currentHands}
-            showDirectControl={isTestControlEnabled}
-            onDirectControlHandsUpdate={handleDirectControlUpdate}
+            // showDirectControl={isTestControlEnabled}
+            onJointValuesUpdate={handleJointValuesUpdate}
           />
         </div>
       </div>
