@@ -25,31 +25,10 @@ export default function ControlTest() {
     []
   );
 
-  // const currentHands = useMemo<BothHands>(
-  //   () => ({
-  //     left: JSON.parse(JSON.stringify(DefaultLeftHandDetection)),
-  //     right: JSON.parse(JSON.stringify(DefaultRightHandDetection)),
-  //   }),
-  //   []
-  // );
-
   // Initialize robot WebSocket connection
   const robotWS = useRobotWebSocket();
 
   console.log("robotWS.isConnected", robotWS.isConnected);
-
-  // // Send hand data to robot server at regular intervals when connected
-  // useEffect(() => {
-  //   if (!robotWS.isConnected) {
-  //     return;
-  //   }
-
-  //   const interval = setInterval(() => {
-  //     robotWS.sendHandData([0, 0, 0, 0, 0, 0]);
-  //   }, 100); // Send data every 100ms (10 times per second)
-
-  //   return () => clearInterval(interval);
-  // }, [robotWS.isConnected, robotWS, currentHands]);
 
   const handleJointValuesUpdate = useCallback(
     (robotId: string, jointValues: number[]) => {
