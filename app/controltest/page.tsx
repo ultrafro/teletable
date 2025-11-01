@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import RobotVisualizer from "../RobotVisualizer";
 import {
   BothHands,
@@ -9,8 +9,12 @@ import {
 } from "../teletable.model";
 import { useRobotWebSocket } from "../hooks/useRobotWebSocket";
 import ControlPageControlPanel from "./ControlPageControlPanel";
+import { useCamera } from "../hooks/useCamera";
 
 export default function ControlTest() {
+  const camera = useCamera();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   const [directMode, setDirectMode] = useState(false);
   const [directValues, setDirectValues] = useState([0, 0, 0, 0, 0, 0]);
 
@@ -38,6 +42,25 @@ export default function ControlTest() {
       currentState.right.joints[i] = directValues[i];
     }
   }, [directValues, directMode]);
+
+  // Initialize and start camera on mount
+  useEffect(() => {
+    const initCamera = async () => {
+      const deviceId = await camera.initializeCamera();
+      if (deviceId) {
+        await camera.startCamera(deviceId);
+      }
+    };
+    initCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Connect camera stream to video element
+  useEffect(() => {
+    if (videoRef.current && camera.stream) {
+      videoRef.current.srcObject = camera.stream;
+    }
+  }, [camera.stream]);
 
   // Initialize robot WebSocket connection
   const robotWS = useRobotWebSocket();
@@ -84,6 +107,46 @@ export default function ControlTest() {
       </div>
       <div className="w-80 p-6 border-l border-foreground/10 min-h-0">
         <div className="h-full flex flex-col space-y-6 overflow-y-auto">
+          {/* Camera selection */}
+          <div className="flex-shrink-0">
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Camera
+            </label>
+            <select
+              value={camera.selectedDeviceId || ""}
+              onChange={(e) => {
+                if (e.target.value) {
+                  camera.selectDevice(e.target.value);
+                }
+              }}
+              className="w-full px-3 py-2 bg-background border border-foreground/10 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20"
+              disabled={camera.isLoading || camera.devices.length === 0}
+            >
+              {camera.devices.length === 0 ? (
+                <option value="">No cameras available</option>
+              ) : (
+                <>
+                  <option value="">Select a camera</option>
+                  {camera.devices.map((device) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+          </div>
+
+          {/* Video stream */}
+          <div className="rounded-lg overflow-hidden border border-foreground/10 shadow-lg flex-shrink-0">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-auto"
+            />
+          </div>
           <ControlPageControlPanel
             robotWS={robotWS}
             directMode={directMode}
