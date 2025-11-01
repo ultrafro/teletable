@@ -46,7 +46,7 @@ export default function ControlTest() {
 
   const handleJointValuesUpdate = useCallback(
     (robotId: string, jointValues: number[]) => {
-      console.log("jointValues", jointValues);
+      //console.log("jointValues", jointValues);
       //console.log("robotWS.isConnected", robotWS.isConnected);
       if (!robotWS.isConnected) {
         return;

@@ -99,7 +99,7 @@ export function useRobotWebSocket(
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          console.log("Received message from robot server:", message);
+          //console.log("Received message from robot server:", message);
 
           // Handle any response messages from the robot server here
           if (message.type === "error") {

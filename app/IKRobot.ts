@@ -264,12 +264,25 @@ export class IKRobot {
   getJointValues() {
     //loop through ik values, if it is a joint with DOF, print the dof value
     const jointValues: number[] = [];
-    for (const element of this.skeletonList) {
-      if (element instanceof Joint && element.dof.length > 0) {
-        jointValues.push(((element as any).dofValues[5] * 180) / Math.PI);
-      }
-    }
-    return jointValues.slice(0, -1);
+
+    jointValues.push(
+      (this.shoulderPanJoint.getDoFValue(DOF.EZ) * 180) / Math.PI
+    );
+    jointValues.push(
+      (this.shoulderLiftJoint.getDoFValue(DOF.EZ) * 180) / Math.PI
+    );
+    jointValues.push((this.elbowFlexJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
+    jointValues.push((this.pitchJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
+    jointValues.push((this.wristJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
+    jointValues.push((this.gripperJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
+    return jointValues;
+
+    // for (const element of this.skeletonList) {
+    //   if (element instanceof Joint && element.dof.length > 0) {
+    //     jointValues.push(((element as any).dofValues[5] * 180) / Math.PI);
+    //   }
+    // }
+    // return jointValues.slice(0, -1);
   }
 
   getJointTransforms() {
