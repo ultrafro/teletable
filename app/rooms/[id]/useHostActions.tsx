@@ -26,10 +26,7 @@ export function useHostActions(
         );
       }
 
-      // Start the camera stream with the selected device ID
-      await camera.startCamera(selectedDeviceId);
-
-      // Initialize PeerJS and get the peer ID
+      // Initialize PeerJS first and get the peer ID
       console.log("Starting PeerJS initialization...");
       const peerId = await peerJS.initializePeer();
       console.log("PeerJS initialization completed, peer ID:", peerId);
@@ -40,16 +37,44 @@ export function useHostActions(
         );
       }
 
-      // Wait a moment to ensure PeerJS is fully ready and camera stream is available
-      console.log("Waiting for host to be fully ready...");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Start the camera stream with the selected device ID
+      console.log("Starting camera stream...");
+      const cameraStream = await camera.startCamera(selectedDeviceId);
 
-      // Verify that both PeerJS and camera are ready
-      if (!peerJS.isConnected || !camera.stream) {
-        throw new Error(
-          "Host not fully ready - PeerJS or camera not available"
-        );
+      if (!cameraStream) {
+        throw new Error("Failed to start camera - no stream returned");
       }
+
+      // Verify camera stream is ready
+      if (cameraStream.getVideoTracks().length === 0) {
+        throw new Error("Camera stream has no video tracks");
+      }
+
+      const videoTrack = cameraStream.getVideoTracks()[0];
+      if (videoTrack.readyState !== "live") {
+        // Wait a bit for the track to become live
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (videoTrack.readyState !== "live") {
+          throw new Error(`Camera track not live - state: ${videoTrack.readyState}`);
+        }
+      }
+
+      // initializePeer() only resolves when peer is actually open and ready
+      // However, React state updates are async, so we give it a moment to update
+      // We'll verify peerId is set (which it should be since initializePeer resolved)
+      console.log("Verifying PeerJS readiness...");
+      
+      // Small delay to let React process state updates
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Since initializePeer resolved successfully, we know the peer is ready
+      // We just verify peerId is available (which should be set synchronously in the event handler)
+      if (!peerId) {
+        console.error("PeerJS check failed - peerId:", peerId);
+        throw new Error("PeerJS not ready - peerId not available");
+      }
+
+      console.log("Host is fully ready! PeerJS connected (peerId:", peerId, ") and camera stream available");
 
       // Call the API to make the room ready
       const response = await fetch("/api/hostIsReadyForControl", {

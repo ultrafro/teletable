@@ -1,11 +1,11 @@
 import { UsePeerJSResult } from "@/app/hooks/usePeerJS";
-import { BothHands } from "@/app/teletable.model";
+import { BothHands, DataFrame } from "@/app/teletable.model";
 import { useEffect } from "react";
 
 export function useUpdateHandsFromClientData(
-  currentHands: BothHands,
+  currentHands: Record<string, DataFrame>,
   peerJS: UsePeerJSResult,
-  onHandsUpdate?: (hands: BothHands) => void
+  onHandsUpdate?: (hands: Record<string, DataFrame>) => void
 ) {
   useEffect(() => {
     peerJS.connections.forEach((connection) => {

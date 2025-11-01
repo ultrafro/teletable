@@ -13,7 +13,7 @@ export interface UseCameraResult {
   error: string | null;
   initializeCamera: () => Promise<string | null>;
   selectDevice: (deviceId: string) => Promise<void>;
-  startCamera: (deviceId?: string) => Promise<void>;
+  startCamera: (deviceId?: string) => Promise<MediaStream | null>;
   stopCamera: () => void;
 }
 
@@ -75,12 +75,12 @@ export function useCamera(): UseCameraResult {
 
   // Start camera with selected device
   const startCamera = useCallback(
-    async (deviceId?: string) => {
+    async (deviceId?: string): Promise<MediaStream | null> => {
       const targetDeviceId = deviceId || selectedDeviceId;
 
       if (!targetDeviceId) {
         setError("No camera device selected");
-        return;
+        return null;
       }
 
       setIsLoading(true);
@@ -105,8 +105,12 @@ export function useCamera(): UseCameraResult {
         if (deviceId && deviceId !== selectedDeviceId) {
           setSelectedDeviceId(deviceId);
         }
+
+        // Return the stream directly so callers don't have to wait for state update
+        return newStream;
       } catch (err) {
         setError("Failed to start camera: " + (err as Error).message);
+        return null;
       } finally {
         setIsLoading(false);
       }
