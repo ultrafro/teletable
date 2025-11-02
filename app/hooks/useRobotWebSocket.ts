@@ -168,8 +168,6 @@ export function useRobotWebSocket(
     };
   }, [clearReconnectTimeout]);
 
-  console.log("isConnected", isConnected);
-
   return {
     isConnected,
     isConnecting,

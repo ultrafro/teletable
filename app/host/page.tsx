@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { nanoid } from "nanoid";
 import { useAuth } from "../lib/auth";
@@ -19,6 +19,11 @@ export default function HostPage() {
   const [roomError, setRoomError] = useState<string | null>(null);
   const [createdRoom, setCreatedRoom] = useState<any>(null);
 
+  // Rooms list state
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -33,6 +38,41 @@ export default function HostPage() {
     }
     setAuthLoading(false);
   };
+
+  const fetchRooms = async () => {
+    if (!user) return;
+
+    setRoomsLoading(true);
+    setRoomsError(null);
+
+    try {
+      const response = await fetch("/api/getHostRooms", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${user.id}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setRooms(result.rooms || []);
+      } else {
+        setRoomsError(result.error || "Failed to fetch rooms");
+      }
+    } catch (error) {
+      setRoomsError("Network error occurred");
+    }
+
+    setRoomsLoading(false);
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchRooms();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleCreateRoom = async () => {
     if (!user || !session) return;
@@ -60,6 +100,8 @@ export default function HostPage() {
 
       if (response.ok) {
         setCreatedRoom(result.room);
+        // Refresh rooms list
+        fetchRooms();
         // Redirect to the room page
         router.push(`/rooms/${roomId}`);
       } else {
@@ -70,6 +112,10 @@ export default function HostPage() {
     }
 
     setRoomCreating(false);
+  };
+
+  const handleRoomClick = (roomId: string) => {
+    router.push(`/rooms/${roomId}`);
   };
 
   if (loading) {
@@ -235,6 +281,111 @@ export default function HostPage() {
               "🚀 Create New Room"
             )}
           </button>
+        </div>
+
+        {/* Existing Rooms Section */}
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Your Rooms
+            </h2>
+            <button
+              onClick={fetchRooms}
+              disabled={roomsLoading}
+              className="text-sm text-indigo-600 hover:text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh rooms list"
+            >
+              {roomsLoading ? "Refreshing..." : "🔄 Refresh"}
+            </button>
+          </div>
+
+          {roomsLoading && (
+            <div className="text-center py-8 text-gray-500">
+              Loading rooms...
+            </div>
+          )}
+
+          {roomsError && (
+            <div className="text-red-600 text-sm mb-4">{roomsError}</div>
+          )}
+
+          {!roomsLoading && !roomsError && rooms.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <p>You haven't created any rooms yet.</p>
+              <p className="text-sm mt-2">
+                Create your first room using the button above!
+              </p>
+            </div>
+          )}
+
+          {!roomsLoading && rooms.length > 0 && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {rooms.map((room) => (
+                <div
+                  key={room.roomId}
+                  onClick={() => handleRoomClick(room.roomId)}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-indigo-300 cursor-pointer transition-all"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 truncate">
+                      {room.roomId}
+                    </h3>
+                    <span
+                      className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                        room.hasActiveControl
+                          ? "bg-yellow-100 text-yellow-800"
+                          : room.hostPeerId
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {room.hasActiveControl
+                        ? "Active Control"
+                        : room.hostPeerId
+                        ? "Ready"
+                        : "Not Ready"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {room.created_at && (
+                      <p>
+                        <span className="font-medium">Created:</span>{" "}
+                        {new Date(room.created_at).toLocaleDateString()}{" "}
+                        {new Date(room.created_at).toLocaleTimeString()}
+                      </p>
+                    )}
+                    <p>
+                      <span className="font-medium">Status:</span>{" "}
+                      {room.hostPeerId ? "Host connected" : "Host not connected"}
+                    </p>
+                    {room.currentControllingClientId && (
+                      <p>
+                        <span className="font-medium">Controlled by:</span>{" "}
+                        <span className="text-indigo-600">
+                          {room.currentControllingClientId.slice(0, 8)}...
+                        </span>
+                      </p>
+                    )}
+                    {room.requestingClientsCount > 0 && (
+                      <p>
+                        <span className="font-medium">Pending requests:</span>{" "}
+                        <span className="text-orange-600">
+                          {room.requestingClientsCount}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-indigo-600 hover:text-indigo-700">
+                      Click to open →
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Created Room Display */}

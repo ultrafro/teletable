@@ -15,6 +15,7 @@ import { useRobotWebSocket } from "@/app/hooks/useRobotWebSocket";
 import RobotVisualizer from "@/app/RobotVisualizer";
 import { useHostActions } from "./useHostActions";
 import { copyHands } from "./copyHands";
+import { useUpdateFromClient } from "./useUpdateFromClient";
 
 export default function HostView({
   roomData,
@@ -75,6 +76,8 @@ export default function HostView({
     [robotWS.isConnected, robotWS.sendHandData]
   );
 
+  console.log("peerjs", peerJS);
+
   // // Callback to handle hand updates from clients
   const handleHandsUpdate = useCallback(
     (hands: Record<string, DataFrame>) => {
@@ -88,20 +91,16 @@ export default function HostView({
           hands[key as keyof Record<string, DataFrame>].joints;
       }
 
-      // Send hand data to robot server if connected
-      if (robotWS.isConnected) {
-        for (const key in currentState) {
-          robotWS.sendHandData(
-            key,
-            currentState[key as keyof Record<string, DataFrame>].joints
-          );
-        }
+      for (const key in currentState) {
+        handleJointValuesUpdate(key, currentState[key].joints);
       }
     },
-    [robotWS, isTestControlEnabled]
+    [isTestControlEnabled, handleJointValuesUpdate]
   );
 
-  useUpdateHandsFromClientData(currentState, peerJS, handleHandsUpdate);
+  useUpdateFromClient(peerJS, handleHandsUpdate);
+
+  // useUpdateHandsFromClientData(currentState, peerJS, handleHandsUpdate);
 
   // // Callback to handle direct control updates from the robot visualizer
   // const handleDirectControlUpdate = useCallback(

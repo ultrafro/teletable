@@ -330,6 +330,13 @@ export function usePeerJS(): UsePeerJSResult {
     };
   }, [peer]);
 
+  //initialize peer when component mounts
+  useEffect(() => {
+    if (!peer && !isConnected) {
+      initializePeer().catch(console.error);
+    }
+  }, [peer, isConnected, initializePeer]);
+
   return {
     peer,
     peerId,
