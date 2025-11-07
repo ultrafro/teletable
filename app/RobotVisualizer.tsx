@@ -21,7 +21,7 @@ import * as THREE from "three";
 import { RobotArmVisualizer } from "./RobotArmVisualizer";
 import { HandVisualizer } from "./HandVisualizer";
 import IKVisualizer from "./IKVisualizer";
-import { IKRobotGroup } from "./IKRobotGroup";
+
 import ControlPointVisualizer from "./ControlPointVisualizer";
 import { Vector3 } from "three";
 import IKRobotFrame from "./IKRobotFrame";

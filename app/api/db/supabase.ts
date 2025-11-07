@@ -46,7 +46,7 @@ export type RoomInfo = {
       pw?: string;
     }
   >;
-  version: "0";
+  version: string;
 };
 
 // Helper functions to convert between database and application formats
