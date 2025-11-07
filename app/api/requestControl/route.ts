@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { clientId, roomId } = body;
+    const { clientId, roomId, pw } = body;
 
     // Validate required fields
     if (!clientId || !roomId) {
@@ -36,7 +36,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Add to requesting client IDs
-    const updatedRoom = await RoomManager.addRequestingClient(roomId, clientId);
+    const updatedRoom = await RoomManager.addRequestingClient(
+      roomId,
+      clientId,
+      pw
+    );
     if (!updatedRoom) {
       return NextResponse.json(
         { error: "Failed to add client to request list" },

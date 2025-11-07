@@ -2,7 +2,11 @@ import { useCallback, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { getAuthHeaders } from "@/app/lib/authHeaders";
 
-export function useControlRequest(user: User | null, roomId: string | null) {
+export function useControlRequest(
+  user: User | null,
+  roomId: string | null,
+  pw?: string
+) {
   const [isRequestingControl, setIsRequestingControl] = useState(false);
   const [requestStatus, setRequestStatus] = useState<string | null>(null);
 
@@ -22,6 +26,7 @@ export function useControlRequest(user: User | null, roomId: string | null) {
         body: JSON.stringify({
           clientId: user.id,
           roomId: roomId,
+          pw: pw,
         }),
       });
 

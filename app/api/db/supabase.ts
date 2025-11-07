@@ -43,6 +43,7 @@ export type RoomInfo = {
     {
       clientId: string;
       requestTime: number;
+      pw?: string;
     }
   >;
   version: "0";

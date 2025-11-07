@@ -88,7 +88,8 @@ export class RoomManager {
 
   static async addRequestingClient(
     roomId: string,
-    clientId: string
+    clientId: string,
+    pw?: string
   ): Promise<Room | null> {
     try {
       const room = await this.getRoom(roomId);
@@ -99,6 +100,7 @@ export class RoomManager {
         room.info.requestingClientIds[clientId] = {
           clientId,
           requestTime: Date.now(),
+          pw: pw,
         };
       }
 

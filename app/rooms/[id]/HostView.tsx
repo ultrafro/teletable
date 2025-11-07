@@ -50,6 +50,21 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     return camera.stream;
   }, [camera.stream]);
 
+  //a use effect that looks at the user request for control, and if it has the password: "dopeness",
+  //it auto approves the request
+  useEffect(() => {
+    if (
+      roomData.info?.requestingClientIds &&
+      Object.keys(roomData.info.requestingClientIds).length > 0
+    ) {
+      for (const clientId in roomData.info.requestingClientIds) {
+        if (roomData.info.requestingClientIds[clientId].pw === "dopeness") {
+          handleApproveRequest(clientId);
+        }
+      }
+    }
+  }, [roomData]);
+
   const onData = useCallback(
     (data: any) => {
       if (isTestControlEnabled) {
