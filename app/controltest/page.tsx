@@ -18,19 +18,16 @@ export default function ControlTest() {
   const [directMode, setDirectMode] = useState(false);
   const [directValues, setDirectValues] = useState([0, 0, 0, 0, 0, 0]);
 
-  const currentState = useMemo<Record<string, DataFrame>>(
-    () => ({
-      left: {
-        joints: directValues,
-        type: "SO101",
-      },
-      right: {
-        joints: directValues,
-        type: "SO101",
-      },
-    }),
-    [directValues]
-  );
+  const currentState = useRef<Record<string, DataFrame>>({
+    left: {
+      joints: directValues,
+      type: "SO101",
+    },
+    right: {
+      joints: directValues,
+      type: "SO101",
+    },
+  });
 
   useEffect(() => {
     if (!directMode) {
@@ -38,8 +35,8 @@ export default function ControlTest() {
     }
 
     for (let i = 0; i < directValues.length; i++) {
-      currentState.left.joints[i] = directValues[i];
-      currentState.right.joints[i] = directValues[i];
+      currentState.current.left.joints[i] = directValues[i];
+      currentState.current.right.joints[i] = directValues[i];
     }
   }, [directValues, directMode]);
 

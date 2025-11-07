@@ -22,7 +22,7 @@ export default function Home() {
 
   return (
     <div className="w-full h-full relative" id="canvas-root">
-      <RobotVisualizer currentHands={currentHands} />
+      hey there!
       <div className="absolute top-0 left-0 z-10 pointer-events-none w-[300px] h-[300px]">
         <div className="pointer-events-auto">
           <HandViewer onHandsDetected={onRawDetection} />

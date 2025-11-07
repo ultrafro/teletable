@@ -1,5 +1,5 @@
 import { Category, NormalizedLandmark } from "@mediapipe/tasks-vision";
-import { BothHands, DefaultHandDetection } from "./teletable.model";
+import { BothHands } from "./teletable.model";
 import { Matrix4, Quaternion, Vector3 } from "three";
 
 export function detectionToHandDetection(
