@@ -1,5 +1,6 @@
-import { Solver, Joint, Link, Goal, DOF } from "closed-chain-ik";
+import { Solver, Joint, Link, Goal } from "closed-chain-ik";
 import { Object3D, Quaternion, Vector3 } from "three";
+import { DOF } from "./IKRobot";
 export class IKTest {
   goal: Goal;
   link1: Link;
@@ -42,8 +43,8 @@ export class IKTest {
     this.goal = new Goal();
 
     this.goal.setGoalDoF(DOF.X, DOF.Y, DOF.Z);
-    this.link3.getWorldPosition(this.goal.position);
-    this.link3.getWorldQuaternion(this.goal.quaternion);
+    // this.link3.getWorldPosition(this.goal.position);
+    // this.link3.getWorldQuaternion(this.goal.quaternion);
 
     this.goal.makeClosure(this.link3);
 

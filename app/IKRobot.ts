@@ -5,7 +5,7 @@ import { drawIKVisualizers } from "./drawIKVisualizers";
 
 // Local DOF const object matching the enum values from closed-chain-ik
 // This avoids the "Cannot access ambient const enums when 'isolatedModules' is enabled" error
-const DOF = {
+export const DOF = {
   X: 0 as number,
   Y: 1 as number,
   Z: 2 as number,
