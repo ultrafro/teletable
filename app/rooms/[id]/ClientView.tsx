@@ -90,10 +90,11 @@ export default function ClientView({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const isInControl = user?.id === roomData.currentControllingClientId;
+  const [roomPassword, setRoomPassword] = useState("");
 
   // Custom hooks
   const { handleRequestControl, isRequestingControl, requestStatus } =
-    useControlRequest(user, roomData.roomId);
+    useControlRequest(user, roomData.roomId, roomPassword);
 
   // Handle video stream display
   useEffect(() => {
@@ -140,6 +141,20 @@ export default function ClientView({
       {/* Right side - Camera View and Control panel */}
       <div className="w-[400px] p-6 border-l border-foreground/10 min-h-0">
         <div className="h-full flex flex-col space-y-6 overflow-y-auto relative">
+          {/* Room Password Section */}
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex flex-col">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Room Password
+            </h3>
+            <input
+              type="password"
+              value={roomPassword}
+              onChange={(e) => setRoomPassword(e.target.value)}
+              placeholder="Enter room password"
+              className="w-full px-3 py-2 bg-background border border-foreground/20 rounded-lg text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
           {/* Remote View Section */}
           <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex flex-col">
             <div className="flex items-center justify-between mb-4">
