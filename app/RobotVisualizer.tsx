@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState, RefObject } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -32,7 +32,7 @@ export default function RobotVisualizer({
   remotelyControlled,
   onJointValuesUpdate,
 }: {
-  currentState: Record<string, DataFrame>;
+  currentState: RefObject<Record<string, DataFrame>>;
   remotelyControlled: boolean;
   onJointValuesUpdate?: (robotId: string, jointValues: number[]) => void;
 }) {
@@ -106,7 +106,7 @@ export default function RobotVisualizer({
           <Compass />
 
           <IKRobotFrame
-            currentState={currentState.left}
+            currentState={currentState}
             handId="left"
             basePosition={LeftArmBasePosition}
             remotelyControlled={remotelyControlled}
@@ -114,7 +114,7 @@ export default function RobotVisualizer({
           />
 
           <IKRobotFrame
-            currentState={currentState.right}
+            currentState={currentState}
             handId="right"
             basePosition={RightArmBasePosition}
             remotelyControlled={remotelyControlled}

@@ -11,6 +11,9 @@ export function useDataConnectionClientside(
   );
   useEffect(() => {
     const establishDataConnection = async () => {
+      if (!peer.peer) {
+        return;
+      }
       if (hostPeerId) {
         console.log("Establishing data connection to host:", hostPeerId);
 

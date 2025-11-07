@@ -10,6 +10,9 @@ export function useVideoCallConnectionClientside(
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   useEffect(() => {
     const establishVideoCall = async () => {
+      if (!peer.peer) {
+        return;
+      }
       if (hostPeerId) {
         console.log("Establishing video call to host:", hostPeerId);
 

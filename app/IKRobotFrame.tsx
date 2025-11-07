@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { IKRobotComponent } from "./IKRobotComponent";
 import { Quaternion, Vector3 } from "three";
-import { useRef } from "react";
+import { RefObject, useRef } from "react";
 import {
   BothHands,
   DataFrame,
@@ -19,7 +19,7 @@ export default function IKRobotFrame({
   directMode,
   directValues,
 }: {
-  currentState: DataFrame;
+  currentState: RefObject<Record<string, DataFrame>>;
   handId: string;
   basePosition: Vector3;
   remotelyControlled: boolean;
@@ -42,6 +42,11 @@ export default function IKRobotFrame({
         goalPosition={handPosition.current}
         goalOtherValues={handOtherValues.current}
         onJointValuesUpdate={(jointValues) => {
+          //copy into currentState.joints
+          for (let i = 0; i < jointValues.length; i++) {
+            currentState.current[handId].joints[i] = jointValues[i];
+          }
+
           if (remotelyControlled || directMode) {
             return;
           }
@@ -49,11 +54,8 @@ export default function IKRobotFrame({
           onJointValuesUpdate?.(handId, jointValues);
         }}
         useDirectValues={remotelyControlled || directMode || false}
-        directValues={
-          directMode && directValues
-            ? directValues.map((deg) => (deg * Math.PI) / 180)
-            : currentState.joints
-        }
+        currentState={currentState}
+        handId={handId}
       />
       {/* <ControlPointVisualizer handData={handData} color="#ef4444" /> */}
 

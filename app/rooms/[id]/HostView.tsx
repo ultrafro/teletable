@@ -59,11 +59,18 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
       try {
         const newData = JSON.parse(data) as Record<string, DataFrame>;
         for (const key in newData) {
-          currentState[key as keyof Record<string, DataFrame>].joints =
-            newData[key as keyof Record<string, DataFrame>].joints;
+          for (let i = 0; i < newData[key].joints.length; i++) {
+            if (!currentState.current[key]) {
+              currentState.current[key] = {
+                joints: [...DefaultDirectValues],
+                type: "SO101",
+              };
+            }
+            currentState.current[key].joints[i] = newData[key].joints[i];
+          }
         }
-        for (const key in currentState) {
-          sendJointValuesToRobot(key, currentState[key].joints);
+        for (const key in currentState.current) {
+          sendJointValuesToRobot(key, currentState.current[key].joints);
         }
       } catch (error) {
         console.error("Error parsing data", error, data);
@@ -72,25 +79,20 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     [isTestControlEnabled, sendJointValuesToRobot]
   );
 
-  const currentState = useMemo<Record<string, DataFrame>>(
-    () => ({
-      left: {
-        joints: [...DefaultDirectValues],
-        type: "SO101",
-      },
-      right: {
-        joints: [...DefaultDirectValues],
-        type: "SO101",
-      },
-    }),
-    []
-  );
+  const currentState = useRef<Record<string, DataFrame>>({
+    left: {
+      joints: [...DefaultDirectValues],
+      type: "SO101",
+    },
+    right: {
+      joints: [...DefaultDirectValues],
+      type: "SO101",
+    },
+  });
 
   const peer = usePeer(onData, onGetLocalStream);
 
   const videoCallConnected = useIsVideoCallConnected(peer);
-
-  console.log("peer", peer);
 
   // Initialize camera devices when component mounts
   useEffect(() => {

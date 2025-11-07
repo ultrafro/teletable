@@ -36,11 +36,11 @@ export function usePeer(
       });
 
       newPeer.on("error", (err: any) => {
-        newPeerToReturn = null;
+        // newPeerToReturn = null;
         console.error("Peer error:", err);
-        setIsConnected(false);
-        setPeer(null);
-        reject(err);
+        // setIsConnected(false);
+        // setPeer(null);
+        // reject(err);
       });
     });
 

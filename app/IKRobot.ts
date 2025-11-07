@@ -1,4 +1,4 @@
-import { Scene, Group, Vector3, Quaternion, Object3D } from "three";
+import { Scene, Group, Vector3, Quaternion, Object3D, MathUtils } from "three";
 import { URDFRobot, URDFVisual } from "urdf-loader";
 import { DOF, Goal, Joint, Link, setUrdfFromIK, Solver } from "closed-chain-ik";
 import { drawIKVisualizers } from "./drawIKVisualizers";
@@ -214,6 +214,8 @@ export class IKRobot {
     // );
   }
 
+  lastDofValues: number[] = [0, 0, 0, 0, 0, 0];
+
   lastTime = 0;
   update() {
     if (this.directMode) {
@@ -227,7 +229,15 @@ export class IKRobot {
         this.gripperJoint,
       ];
       for (let i = 0; i < order.length; i++) {
-        order[i].setDoFValue(DOF.EZ, (this.directValues[i] * Math.PI) / 180);
+        //lerp to this value
+
+        const start = this.lastDofValues[i];
+        const end = (this.directValues[i] * Math.PI) / 180;
+        const lerped = MathUtils.lerp(start as number, end, 0.1);
+        order[i].setDoFValue(DOF.EZ, lerped);
+        this.lastDofValues[i] = lerped;
+
+        //order[i].setDoFValue(DOF.EZ, (this.directValues[i] * Math.PI) / 180);
       }
     } else {
       const start = performance.now();
