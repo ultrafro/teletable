@@ -1,9 +1,10 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { urdfRobotToIKRoot } from "closed-chain-ik";
-import { useEffect, useState } from "react";
+import { RefObject, useEffect, useState } from "react";
 import { Vector3, Quaternion, LoadingManager, Scene } from "three";
 import URDFLoader from "urdf-loader";
 import { IKRobot } from "./IKRobot";
+import { DataFrame } from "./teletable.model";
 
 export function IKRobotComponent({
   basePostion,
@@ -11,7 +12,8 @@ export function IKRobotComponent({
   goalOtherValues,
   onJointValuesUpdate,
   useDirectValues,
-  directValues,
+  currentState,
+  handId,
 }: {
   basePostion: Vector3;
   goalPosition: Vector3;
@@ -22,7 +24,8 @@ export function IKRobotComponent({
   };
   onJointValuesUpdate: (jointValues: number[]) => void;
   useDirectValues: boolean;
-  directValues: number[];
+  currentState: RefObject<Record<string, DataFrame>>;
+  handId: string;
 }) {
   const { scene } = useThree();
   const [IKRobotClass, setIKRobotClass] = useState<IKRobot | null>(null);
@@ -79,7 +82,7 @@ export function IKRobotComponent({
       );
 
       if (useDirectValues) {
-        IKRobotClass.setDirectValues(directValues);
+        IKRobotClass.setDirectValues(currentState.current[handId].joints);
       }
 
       IKRobotClass.directMode = useDirectValues;

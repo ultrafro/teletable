@@ -7,8 +7,24 @@ import { useCallback } from "react";
 export function useBroadcastState(dataConnection: DataConnection | null) {
   const onUpdate = useCallback(
     (state: Record<string, DataFrame>) => {
-      if (dataConnection) {
-        dataConnection.send(JSON.stringify(state));
+      if (dataConnection && dataConnection.open) {
+        const broadcastState: Record<string, DataFrame> = {};
+        for (const key in state) {
+          const truncatedJoints: number[] = [];
+          for (let i = 0; i < state[key].joints.length; i++) {
+            const size = 100;
+            truncatedJoints.push(
+              Math.round(state[key].joints[i] * size) / size
+            );
+          }
+
+          broadcastState[key] = {
+            joints: truncatedJoints,
+            type: state[key].type,
+          };
+        }
+
+        dataConnection.send(JSON.stringify(broadcastState));
       }
     },
     [dataConnection]

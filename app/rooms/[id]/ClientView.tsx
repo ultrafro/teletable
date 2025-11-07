@@ -13,6 +13,7 @@ import { useConnectionRefresh } from "@/app/hooks/useConnectionRefresh";
 import {
   BothHands,
   DataFrame,
+  DefaultDirectValues,
   DefaultLeftHandDetection,
   DefaultRightHandDetection,
 } from "@/app/teletable.model";
@@ -33,22 +34,17 @@ export default function ClientView({
   user: User | null;
 }) {
   const peer = usePeer();
-  const [directValues, setDirectValues] = useState([0, 0, 0, 0, 0, 0]);
 
-  const currentState = useMemo<Record<string, DataFrame>>(
-    () => ({
-      left: {
-        joints: directValues,
-        type: "SO101",
-      },
-      right: {
-        joints: directValues,
-        type: "SO101",
-      },
-    }),
-    [directValues]
-  );
-
+  const currentState = useRef<Record<string, DataFrame>>({
+    left: {
+      joints: [...DefaultDirectValues],
+      type: "SO101",
+    },
+    right: {
+      joints: [...DefaultDirectValues],
+      type: "SO101",
+    },
+  });
   const remoteStream = useVideoCallConnectionClientside(
     roomData.hostPeerId || "",
     peer
@@ -60,20 +56,37 @@ export default function ClientView({
 
   const onStateUpdate = useBroadcastState(dataConnection);
 
+  const lastPrintTime = useRef(0);
   const handleJointValuesUpdate = useCallback(
     (robotId: string, jointValues: number[]) => {
-      const transmission: Record<string, DataFrame> = {};
-      for (const key in currentState) {
-        transmission[key] = {
-          joints: currentState[key].joints,
-          type: "SO101",
-        };
+      if (Date.now() - lastPrintTime.current > 1000) {
+        lastPrintTime.current = Date.now();
+        // console.log(
+        //   "currentState in jointValuesUpdate",
+        //   currentState.current?.right?.joints?.[5]
+        // );
       }
-      transmission[robotId].joints = jointValues;
+
+      const transmission: Record<string, DataFrame> = JSON.parse(
+        JSON.stringify(currentState.current)
+      );
+      transmission[robotId].joints = [...jointValues];
       onStateUpdate(transmission);
     },
-    [currentState, onStateUpdate]
+    [onStateUpdate]
   );
+
+  useEffect(() => {
+    const int = setInterval(() => {
+      if (typeof window !== "undefined") {
+        // console.log(
+        //   "currentState in useEffect",
+        //   currentState.current?.right?.joints?.[5]
+        // );
+      }
+    }, 1000);
+    return () => clearInterval(int);
+  }, [currentState]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const isInControl = user?.id === roomData.currentControllingClientId;
@@ -89,8 +102,14 @@ export default function ClientView({
     }
   }, [remoteStream]);
 
-  console.log("peer", peer);
-  console.log("roomData", roomData);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).peer = peer;
+    }
+  }, [peer]);
+
+  // console.log("peer", peer);
+  // console.log("roomData", roomData);
 
   return (
     <div className="h-full flex bg-background overflow-hidden">
