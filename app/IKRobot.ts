@@ -1,7 +1,18 @@
 import { Scene, Group, Vector3, Quaternion, Object3D, MathUtils } from "three";
 import { URDFRobot, URDFVisual } from "urdf-loader";
-import { DOF, Goal, Joint, Link, setUrdfFromIK, Solver } from "closed-chain-ik";
+import { Goal, Joint, Link, setUrdfFromIK, Solver } from "closed-chain-ik";
 import { drawIKVisualizers } from "./drawIKVisualizers";
+
+// Local DOF const object matching the enum values from closed-chain-ik
+// This avoids the "Cannot access ambient const enums when 'isolatedModules' is enabled" error
+const DOF = {
+  X: 0 as number,
+  Y: 1 as number,
+  Z: 2 as number,
+  EX: 3 as number,
+  EY: 4 as number,
+  EZ: 5 as number,
+};
 
 export class IKRobot {
   scene: Scene;
@@ -276,15 +287,23 @@ export class IKRobot {
     const jointValues: number[] = [];
 
     jointValues.push(
-      (this.shoulderPanJoint.getDoFValue(DOF.EZ) * 180) / Math.PI
+      (Number(this.shoulderPanJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
     );
     jointValues.push(
-      (this.shoulderLiftJoint.getDoFValue(DOF.EZ) * 180) / Math.PI
+      (Number(this.shoulderLiftJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
     );
-    jointValues.push((this.elbowFlexJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
-    jointValues.push((this.pitchJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
-    jointValues.push((this.wristJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
-    jointValues.push((this.gripperJoint.getDoFValue(DOF.EZ) * 180) / Math.PI);
+    jointValues.push(
+      (Number(this.elbowFlexJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
+    );
+    jointValues.push(
+      (Number(this.pitchJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
+    );
+    jointValues.push(
+      (Number(this.wristJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
+    );
+    jointValues.push(
+      (Number(this.gripperJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
+    );
     return jointValues;
 
     // for (const element of this.skeletonList) {
