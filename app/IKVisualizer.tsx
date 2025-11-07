@@ -48,10 +48,7 @@ export default function IKVisualizer({
         meshRef.current.position,
         meshRef.current.quaternion
       );
-      IKRobotClass?.setGoalTransform(
-        meshRef.current.position,
-        meshRef.current.quaternion
-      );
+      IKRobotClass?.setGoalTransform(meshRef.current.position, 0, 0, 0);
     }
 
     ikTestRef.current.update();
