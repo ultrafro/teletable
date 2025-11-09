@@ -10,7 +10,7 @@ import {
 import { useRobotWebSocket } from "../hooks/useRobotWebSocket";
 import ControlPageControlPanel from "./ControlPageControlPanel";
 import { useCamera } from "../hooks/useCamera";
-
+export const dynamic = "force-dynamic";
 export default function ControlTest() {
   const camera = useCamera();
   const videoRef = useRef<HTMLVideoElement>(null);
