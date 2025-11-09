@@ -57,6 +57,7 @@ export class RoomManager {
           updates.currentControllingClientId !== undefined
             ? updates.currentControllingClientId
             : existingRoom?.currentControllingClientId || null,
+        pw: updates.pw !== undefined ? updates.pw : existingRoom?.pw || null,
         info: updates.info ||
           existingRoom?.info || {
             requestingClientIds: {},

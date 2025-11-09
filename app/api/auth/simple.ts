@@ -1,10 +1,10 @@
-// Simple authentication helper
-// In a production app, this would use proper JWT tokens, OAuth, etc.
+// Supabase JWT authentication helper
+import { supabaseAdmin } from "../db/supabase";
 
-export function authenticateRequest(headers: Headers): {
+export async function authenticateRequest(headers: Headers): Promise<{
   isValid: boolean;
   userId?: string;
-} {
+}> {
   const authHeader = headers.get("authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -13,13 +13,26 @@ export function authenticateRequest(headers: Headers): {
 
   const token = authHeader.substring(7); // Remove "Bearer " prefix
 
-  // Simple token validation - in production, this would verify JWT or similar
-  if (!token || token.length < 3) {
+  if (!token) {
     return { isValid: false };
   }
 
-  // For this demo, we'll just use the token as the userId
-  return { isValid: true, userId: token };
+  try {
+    // Verify the JWT token using Supabase admin client
+    const {
+      data: { user },
+      error,
+    } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !user) {
+      return { isValid: false };
+    }
+
+    return { isValid: true, userId: user.id };
+  } catch (error) {
+    console.error("Error verifying JWT token:", error);
+    return { isValid: false };
+  }
 }
 
 export function createAuthError() {

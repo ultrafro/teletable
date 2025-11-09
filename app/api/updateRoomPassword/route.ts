@@ -11,12 +11,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { hostId, roomId, clientId } = body;
+    const { hostId, roomId, password } = body;
 
     // Validate required fields
-    if (!hostId || !roomId || !clientId) {
+    if (!hostId || !roomId) {
       return NextResponse.json(
-        { error: "Missing required fields: hostId, roomId, clientId" },
+        { error: "Missing required fields: hostId, roomId" },
         { status: 400 }
       );
     }
@@ -42,33 +42,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if the client actually requested control
-    if (!room.info.requestingClientIds[clientId]) {
-      return NextResponse.json(
-        { error: "Client has not requested control for this room" },
-        { status: 400 }
-      );
-    }
+    // Update the room password (password can be empty string to clear it)
+    const updatedRoom = await RoomManager.createOrUpdateRoom(roomId, {
+      ...room,
+      pw: password || undefined,
+    });
 
-    // Set currentControllingClientId to clientId
-    const updatedRoom = await RoomManager.setControllingClient(
-      roomId,
-      clientId
-    );
     if (!updatedRoom) {
       return NextResponse.json(
-        { error: "Failed to approve client request" },
+        { error: "Failed to update room password" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: "Client request approved",
-      controllingClient: clientId,
+      message: password ? "Room password updated" : "Room password cleared",
+      room: {
+        roomId: updatedRoom.roomId,
+        roomPW: updatedRoom.pw,
+      },
     });
   } catch (error) {
-    console.error("Error in approveClientRequest:", error);
+    console.error("Error in updateRoomPassword:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

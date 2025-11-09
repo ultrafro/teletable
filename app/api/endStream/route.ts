@@ -5,7 +5,7 @@ import { RoomManager } from "../data/rooms";
 export async function POST(request: NextRequest) {
   try {
     // Check authenticity
-    const auth = authenticateRequest(request.headers);
+    const auth = await authenticateRequest(request.headers);
     if (!auth.isValid || !auth.userId) {
       return createAuthError();
     }

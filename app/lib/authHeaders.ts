@@ -1,17 +1,17 @@
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 
 /**
  * Generate authenticated headers for API requests
- * @param user - The authenticated Supabase user
+ * @param session - The authenticated Supabase session (contains JWT access_token)
  * @returns Headers object with Authorization and Content-Type
  */
-export function getAuthHeaders(user: User | null): HeadersInit {
+export function getAuthHeaders(session: Session | null): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
 
-  if (user?.id) {
-    headers.Authorization = `Bearer ${user.id}`;
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`;
   }
 
   return headers;
@@ -19,19 +19,19 @@ export function getAuthHeaders(user: User | null): HeadersInit {
 
 /**
  * Create a fetch options object with authenticated headers
- * @param user - The authenticated Supabase user
+ * @param session - The authenticated Supabase session
  * @param method - HTTP method (default: 'GET')
  * @param body - Request body (optional)
  * @returns RequestInit object ready for fetch
  */
 export function createAuthFetchOptions(
-  user: User | null,
+  session: Session | null,
   method: string = "GET",
   body?: BodyInit
 ): RequestInit {
   const options: RequestInit = {
     method,
-    headers: getAuthHeaders(user),
+    headers: getAuthHeaders(session),
   };
 
   if (body) {

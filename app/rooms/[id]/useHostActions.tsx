@@ -1,11 +1,12 @@
 import { UseCameraResult } from "@/app/hooks/useCamera";
 
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 import { RoomData } from "./roomUI.model";
 import { UsePeerResult } from "@/app/hooks/usePeer";
 
 export function useHostActions(
   user: User | null,
+  session: Session | null,
   roomData: RoomData,
   camera: UseCameraResult,
   peer: UsePeerResult,
@@ -39,7 +40,7 @@ export function useHostActions(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
           hostId: user.id,
@@ -75,7 +76,7 @@ export function useHostActions(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
           hostId: user.id,
@@ -110,7 +111,7 @@ export function useHostActions(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
           hostId: user.id,
@@ -144,7 +145,7 @@ export function useHostActions(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
           hostId: user.id,
@@ -178,7 +179,7 @@ export function useHostActions(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
           hostId: user.id,
@@ -203,11 +204,43 @@ export function useHostActions(
     }
   };
 
+  const handleUpdatePassword = async (newPassword: string) => {
+    try {
+      const response = await fetch("/api/updateRoomPassword", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          hostId: user?.id,
+          roomId: roomData.roomId,
+          password: newPassword.trim() || "",
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update password");
+      }
+
+      // Password updated successfully
+      // The roomData will be refreshed on the next poll
+    } catch (error) {
+      console.error("Error updating password:", error);
+      alert(
+        error instanceof Error ? error.message : "Failed to update password"
+      );
+      throw error;
+    }
+  };
+
   return {
     handleMakeRoomReady,
     handleEndStream,
     handleApproveRequest,
     handleDenyRequest,
     handleRevokeControl,
+    handleUpdatePassword,
   };
 }

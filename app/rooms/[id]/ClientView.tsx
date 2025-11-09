@@ -29,9 +29,11 @@ import { useDataConnectionClientside } from "./useDataConnectionClientside";
 export default function ClientView({
   roomData,
   user,
+  session,
 }: {
   roomData: RoomData;
   user: User | null;
+  session: Session | null;
 }) {
   const peer = usePeer();
 
@@ -102,7 +104,7 @@ export default function ClientView({
 
   // Custom hooks
   const { handleRequestControl, isRequestingControl, requestStatus } =
-    useControlRequest(user, roomData.roomId, roomPassword);
+    useControlRequest(user, session, roomData.roomId, roomPassword);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
