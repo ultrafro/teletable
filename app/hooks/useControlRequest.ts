@@ -43,7 +43,7 @@ export function useControlRequest(
     } finally {
       setIsRequestingControl(false);
     }
-  }, [user, roomId]);
+  }, [user, roomId, pw]);
 
   return {
     handleRequestControl,

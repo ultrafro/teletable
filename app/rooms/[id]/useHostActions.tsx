@@ -18,15 +18,6 @@ export function useHostActions(
 
     setIsInitializingStream(true);
     try {
-      // First, initialize camera access to get devices and get the selected device ID
-      const selectedDeviceId = await camera.initializeCamera();
-
-      if (!selectedDeviceId) {
-        throw new Error(
-          "No camera devices found or failed to initialize camera"
-        );
-      }
-
       // Initialize PeerJS first and get the peer ID
       console.log("Starting PeerJS initialization...");
       const newPeer = await peer.resetPeer();
@@ -37,36 +28,10 @@ export function useHostActions(
         );
       }
 
-      console.log("PeerJS initialization completed, peer ID:", newPeer.id);
-
-      // Start the camera stream with the selected device ID
-      console.log("Starting camera stream...");
-      const cameraStream = await camera.startCamera(selectedDeviceId);
-
-      if (!cameraStream) {
-        throw new Error("Failed to start camera - no stream returned");
-      }
-
-      // Verify camera stream is ready
-      if (cameraStream.getVideoTracks().length === 0) {
-        throw new Error("Camera stream has no video tracks");
-      }
-
-      const videoTrack = cameraStream.getVideoTracks()[0];
-      if (videoTrack.readyState !== "live") {
-        // Wait a bit for the track to become live
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        if (videoTrack.readyState !== "ended") {
-          throw new Error(
-            `Camera track not live - state: ${videoTrack.readyState}`
-          );
-        }
-      }
-
       console.log(
         "Host is fully ready! PeerJS connected (peerId:",
         newPeer.id,
-        ") and camera stream available"
+        ")"
       );
 
       // Call the API to make the room ready
@@ -94,8 +59,6 @@ export function useHostActions(
     } catch (err) {
       console.error("Error making room ready:", err);
       alert("Failed to make room ready: " + (err as Error).message);
-      // Clean up on error
-      camera.stopCamera();
     } finally {
       setIsInitializingStream(false);
     }

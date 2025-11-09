@@ -49,6 +49,14 @@ export default function ClientView({
     roomData.hostPeerId || "",
     peer
   );
+  //Handle video stream display
+  useEffect(() => {
+    console.log("remote stream changed to:", remoteStream);
+    if (videoRef.current && remoteStream) {
+      videoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
   const dataConnection = useDataConnectionClientside(
     roomData.hostPeerId || "",
     peer
@@ -96,13 +104,6 @@ export default function ClientView({
   const { handleRequestControl, isRequestingControl, requestStatus } =
     useControlRequest(user, roomData.roomId, roomPassword);
 
-  // Handle video stream display
-  useEffect(() => {
-    if (videoRef.current && remoteStream) {
-      videoRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       (window as any).peer = peer;
@@ -113,7 +114,7 @@ export default function ClientView({
   // console.log("roomData", roomData);
 
   return (
-    <div className="h-full flex bg-background overflow-hidden">
+    <div className="h-full flex flex-col lg:flex-row bg-background overflow-hidden">
       {/* Left side - Robot Control */}
       <div className="flex-1 p-6 min-h-0">
         <div className="h-full bg-foreground/5 rounded-lg border border-foreground/10 p-6 flex flex-col">
@@ -139,7 +140,7 @@ export default function ClientView({
       </div>
 
       {/* Right side - Camera View and Control panel */}
-      <div className="w-[400px] p-6 border-l border-foreground/10 min-h-0">
+      <div className="w-full lg:w-[400px] lg:flex-shrink-0 p-6 lg:border-l border-t lg:border-t-0 border-foreground/10 min-h-0">
         <div className="h-full flex flex-col space-y-6 overflow-y-auto relative">
           {/* Room Password Section */}
           <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex flex-col">

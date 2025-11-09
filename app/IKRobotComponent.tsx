@@ -49,7 +49,7 @@ export function IKRobotComponent({
         // });
 
         const ikRobot = urdfRobotToIKRoot(robot, false);
-        console.log(ikRobot);
+        // console.log(ikRobot);
 
         const newIKRobot = new IKRobot(
           scene as unknown as Scene,

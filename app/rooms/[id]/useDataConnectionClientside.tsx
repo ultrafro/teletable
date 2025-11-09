@@ -11,28 +11,39 @@ export function useDataConnectionClientside(
   );
   useEffect(() => {
     const establishDataConnection = async () => {
-      if (!peer.peer) {
+      console.log("establishing data connection to host:", hostPeerId);
+      if (!peer.peer || !peer.isConnected || !hostPeerId) {
+        console.log(
+          "not establishing data connection to host because of missing requirements:",
+          {
+            peer: !!peer.peer,
+            isConnected: peer.isConnected,
+            hostPeerId: !!hostPeerId,
+          }
+        );
         return;
       }
-      if (hostPeerId) {
-        console.log("Establishing data connection to host:", hostPeerId);
+      console.log("Establishing data connection to host:", hostPeerId);
 
-        const dataConnection = await peer.peer?.connect(hostPeerId);
-        if (!dataConnection) {
-          console.error(
-            "Failed to establish data connection to host:",
-            hostPeerId
-          );
-          return;
-        }
-        setDataConnection(dataConnection);
-        console.log(
-          "Data connection established to host:",
-          dataConnection.peer
+      const dataConnection = await peer.peer?.connect(hostPeerId);
+      if (!dataConnection) {
+        console.error(
+          "Failed to establish data connection to host:",
+          hostPeerId
         );
+        return;
       }
+      setDataConnection(dataConnection);
+      console.log("Data connection established to host:", dataConnection.peer);
     };
     establishDataConnection();
+
+    return () => {
+      console.log("closing data connection");
+      if (dataConnection) {
+        dataConnection.close();
+      }
+    };
   }, [hostPeerId, peer]);
 
   return dataConnection;

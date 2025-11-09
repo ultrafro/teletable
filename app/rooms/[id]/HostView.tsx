@@ -105,7 +105,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     },
   });
 
-  const peer = usePeer(onData, onGetLocalStream);
+  const peer = usePeer(onData, camera.fakeVideoStream);
 
   const videoCallConnected = useIsVideoCallConnected(peer);
 
@@ -117,8 +117,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
         console.error("Failed to initialize camera devices:", err);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []);
 
   // Display camera stream in video element when available
   useEffect(() => {
@@ -129,7 +128,12 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
         videoRef.current.srcObject = null;
       }
     }
-  }, [camera.stream]);
+
+    //tell the peer to switch to the new stream
+    if (peer.peer) {
+      peer.switchStream(camera.stream || camera.fakeVideoStream);
+    }
+  }, [camera.stream, camera.fakeVideoStream, peer]);
 
   const {
     handleMakeRoomReady,
@@ -147,21 +151,35 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     setIsProcessingRequest
   );
 
+  //if the room's hostPeerId does not match the peer's id, reset the room's ready state
+  const lastHostPeerId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const currentHostPeerId = peer.peer?.id;
+
+    if (currentHostPeerId !== lastHostPeerId.current) {
+      lastHostPeerId.current = currentHostPeerId;
+      if (!!roomData.hostPeerId && roomData.hostPeerId !== peer.peer?.id) {
+        console.log("ending stream!");
+        handleEndStream();
+      }
+    }
+  }, [roomData.hostPeerId, peer.peer?.id, handleEndStream]);
+
   const isRoomReady = roomData.hostPeerId !== null;
 
   const { linkCopied, handleCopyInviteLink } = useInviteLink();
 
   return (
-    <div className="h-full flex bg-background overflow-hidden">
+    <div className="h-full flex flex-col lg:flex-row bg-background overflow-hidden">
       {/* Left side - Robot Visualizer */}
-      <div className="flex-1 p-6 min-h-0">
-        <div className="h-full bg-foreground/5 rounded-lg border border-foreground/10 p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-foreground">
+      <div className="flex-1 p-3 sm:p-4 lg:p-6 min-h-0 min-w-0">
+        <div className="h-full bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4 lg:p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
               Robot Control
             </h2>
           </div>
-          <div className="flex-1 relative">
+          <div className="flex-1 relative min-h-0">
             <RobotVisualizer
               currentState={currentState}
               remotelyControlled={!isTestControlEnabled}
@@ -172,12 +190,12 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
       </div>
 
       {/* Right side - Control panel column */}
-      <div className="w-80 p-6 border-l border-foreground/10 min-h-0">
-        <div className="h-full flex flex-col space-y-6 overflow-y-auto">
+      <div className="w-full lg:w-80 xl:w-96 p-3 sm:p-4 lg:p-6 border-t lg:border-t-0 lg:border-l border-foreground/10 min-h-0 overflow-y-auto">
+        <div className="h-full flex flex-col space-y-4 sm:space-y-6 overflow-y-auto">
           {/* Invite Section */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-shrink-0">
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4 flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">
                 Invite Others
               </h3>
             </div>
@@ -227,9 +245,9 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
           </div>
 
           {/* Camera Feed Section */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-shrink-0">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4 flex-shrink-0">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">
                 Host Camera Feed
               </h3>
               <div className="flex items-center space-x-2">
@@ -333,8 +351,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
           </div>
 
           {/* Connection Status Section */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">
               Connection Status
             </h3>
             <div className="space-y-3">
@@ -419,8 +437,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
           </div>
 
           {/* Robot Server Control Section */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">
               Robot Server Control
             </h3>
             <div className="space-y-3">
@@ -469,9 +487,9 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
           </div>
 
           {/* Robot Control Preview Section */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">
                 Test Control
               </h3>
               <button
@@ -494,8 +512,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
           </div>
 
           {/* Client Approval/Disapproval Menu */}
-          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex-1">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4 flex-1">
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">
               Client Management
             </h3>
             <div className="space-y-3">

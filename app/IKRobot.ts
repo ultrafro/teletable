@@ -93,11 +93,11 @@ export class IKRobot {
     this.walkRobotTree(this.ikRobot, this.skeletonList);
     this.visualSkeletonList = [];
     // this.walkRobotTree(this.urdfRobot, this.visualSkeletonList);
-    console.log(this.skeletonList);
+    // console.log(this.skeletonList);
     this.endLink = this.skeletonList.find(
       (link) => link.name === "gripper_frame_link"
     ) as Link;
-    console.log("end link: ", this.endLink);
+    // console.log("end link: ", this.endLink);
 
     this.wristJoint = this.skeletonList.find(
       (link) => link.name === "wrist_roll"
