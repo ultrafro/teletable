@@ -6,6 +6,7 @@ export interface RoomData {
   hostPeerId: string | null;
   currentControllingClientId: string | null;
   info?: RoomInfo;
+  roomPW?: string;
 }
 
 export interface RoomResponse {

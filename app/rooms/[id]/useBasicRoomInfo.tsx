@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { RoomData } from "./roomUI.model";
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 import {
   createAuthFetchOptions,
   isUserAuthenticated,
 } from "../../lib/authHeaders";
 
-export function useBasicRoomInfo(roomId: string, user: User | null) {
+export function useBasicRoomInfo(roomId: string, user: User | null, session: Session | null) {
   //do a fetch to getClientRoomInfo every 3 seconds
   const [roomData, setRoomData] = useState<RoomData | null>(null);
 
@@ -16,7 +16,7 @@ export function useBasicRoomInfo(roomId: string, user: User | null) {
     try {
       const response = await fetch(
         `/api/getBasicRoomInfo?roomId=${roomId}&userId=${user.id}`,
-        createAuthFetchOptions(user, "GET")
+        createAuthFetchOptions(session, "GET")
       );
 
       if (!response.ok) {
@@ -32,7 +32,7 @@ export function useBasicRoomInfo(roomId: string, user: User | null) {
     } catch (error) {
       console.error("Error fetching room data:", error);
     }
-  }, [user, roomId]);
+  }, [user, session, roomId]);
 
   useEffect(() => {
     // Initial fetch

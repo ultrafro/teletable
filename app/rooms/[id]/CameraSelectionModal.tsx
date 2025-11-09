@@ -2,12 +2,13 @@ import { UseCameraResult } from "@/app/hooks/useCamera";
 import { UsePeerJSResult } from "@/app/hooks/usePeerJS";
 import { useRef, useState } from "react";
 import { RoomData } from "./roomUI.model";
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 
 export default function CameraSelectionModal({
   camera,
   peerJS,
   user,
+  session,
   roomData,
   onClose,
   refreshRoomData,
@@ -15,6 +16,7 @@ export default function CameraSelectionModal({
   camera: UseCameraResult;
   peerJS: UsePeerJSResult;
   user: User;
+  session: Session | null;
   roomData: RoomData;
   onClose: () => void;
   refreshRoomData: () => void;
@@ -62,7 +64,7 @@ export default function CameraSelectionModal({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
           hostId: user.id,

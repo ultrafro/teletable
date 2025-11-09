@@ -5,7 +5,7 @@ import { RoomManager } from "../data/rooms";
 export async function GET(request: NextRequest) {
   try {
     // Check authenticity
-    const auth = authenticateRequest(request.headers);
+    const auth = await authenticateRequest(request.headers);
     const { searchParams } = new URL(request.url);
     const roomId = searchParams.get("roomId");
 

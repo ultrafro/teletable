@@ -22,7 +22,7 @@ import { usePeer } from "@/app/hooks/usePeer";
 import { useIsVideoCallConnected } from "./useIsVideoCallConnected";
 
 export default function HostView({ roomData }: { roomData: RoomData }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const camera = useCamera();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -30,6 +30,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
   const [isEndingStream, setIsEndingStream] = useState(false);
   const [isProcessingRequest, setIsProcessingRequest] = useState(false);
   const [isTestControlEnabled, setIsTestControlEnabled] = useState(false);
+  const [roomPassword, setRoomPassword] = useState(roomData.roomPW || "");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   // Initialize robot WebSocket connection
   const robotWS = useRobotWebSocket();
 
@@ -50,7 +52,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     return camera.stream;
   }, [camera.stream]);
 
-  //a use effect that looks at the user request for control, and if it has the password: "dopeness",
+  //a use effect that looks at the user request for control, and if it has the room password,
   //it auto approves the request
   useEffect(() => {
     if (
@@ -58,7 +60,12 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
       Object.keys(roomData.info.requestingClientIds).length > 0
     ) {
       for (const clientId in roomData.info.requestingClientIds) {
-        if (roomData.info.requestingClientIds[clientId].pw === "dopeness") {
+        const requestPw = roomData.info.requestingClientIds[clientId].pw;
+        const roomPw = roomData.roomPW;
+        console.log("room data changed", requestPw, roomPw);
+        if (
+          roomData.info.requestingClientIds[clientId].pw === roomData.roomPW
+        ) {
           handleApproveRequest(clientId);
         }
       }
@@ -141,8 +148,10 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     handleApproveRequest,
     handleDenyRequest,
     handleRevokeControl,
+    handleUpdatePassword: handleUpdatePasswordAction,
   } = useHostActions(
     user,
+    session,
     roomData,
     camera,
     peer,
@@ -168,6 +177,20 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
   const isRoomReady = roomData.hostPeerId !== null;
 
   const { linkCopied, handleCopyInviteLink } = useInviteLink();
+
+  const handleUpdatePassword = useCallback(async () => {
+    if (!user || !roomData.roomId) return;
+
+    setIsUpdatingPassword(true);
+    handleUpdatePasswordAction(roomPassword.trim() || "").then(() => {
+      setIsUpdatingPassword(false);
+    });
+  }, [user, roomData.roomId, roomPassword]);
+
+  // Update local password state when roomData changes
+  useEffect(() => {
+    setRoomPassword(roomData.roomPW || "");
+  }, [roomData.roomPW]);
 
   return (
     <div className="h-full flex flex-col lg:flex-row bg-background overflow-hidden">
@@ -242,6 +265,34 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 </>
               )}
             </button>
+          </div>
+
+          {/* Room Password Section */}
+          <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4 flex-shrink-0">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">
+                Room Password
+              </h3>
+            </div>
+            <p className="text-sm text-foreground/70 mb-3">
+              Set a password that clients must provide when requesting control
+            </p>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={roomPassword}
+                onChange={(e) => setRoomPassword(e.target.value)}
+                placeholder="Enter room password (optional)"
+                className="w-full px-3 py-2 bg-background border border-foreground/20 rounded-md text-sm text-foreground placeholder:text-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleUpdatePassword}
+                disabled={isUpdatingPassword}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUpdatingPassword ? "Updating..." : "Update Password"}
+              </button>
+            </div>
           </div>
 
           {/* Camera Feed Section */}

@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 import { getAuthHeaders } from "@/app/lib/authHeaders";
 
 export function useControlRequest(
   user: User | null,
+  session: Session | null,
   roomId: string | null,
   pw?: string
 ) {
@@ -22,7 +23,7 @@ export function useControlRequest(
     try {
       const response = await fetch("/api/requestControl", {
         method: "POST",
-        headers: getAuthHeaders(user),
+        headers: getAuthHeaders(session),
         body: JSON.stringify({
           clientId: user.id,
           roomId: roomId,
@@ -43,7 +44,7 @@ export function useControlRequest(
     } finally {
       setIsRequestingControl(false);
     }
-  }, [user, roomId, pw]);
+  }, [user, session, roomId, pw]);
 
   return {
     handleRequestControl,

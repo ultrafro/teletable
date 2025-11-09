@@ -25,7 +25,8 @@ export interface DatabaseRoom {
   hostid: string;
   hostpeerid: string | null;
   currentcontrollingclientid: string | null;
-  info: Record<string, any>; // JSON field
+  info: Record<string, unknown>; // JSON field
+  pw: string | null;
 }
 
 // Application types (matching the original interface)
@@ -34,6 +35,7 @@ export interface Room {
   hostId: string;
   hostPeerId: string | null;
   currentControllingClientId: string | null;
+  pw: string | null;
   info: RoomInfo;
 }
 
@@ -56,6 +58,7 @@ export function dbToAppRoom(dbRoom: DatabaseRoom): Room {
     hostId: dbRoom.hostid,
     hostPeerId: dbRoom.hostpeerid,
     currentControllingClientId: dbRoom.currentcontrollingclientid,
+    pw: dbRoom.pw || null,
     info: dbRoom.info as RoomInfo,
   };
 }
@@ -68,6 +71,9 @@ export function appToDbRoom(room: Partial<Room>): Partial<DatabaseRoom> {
   if (room.hostPeerId !== undefined) dbRoom.hostpeerid = room.hostPeerId;
   if (room.currentControllingClientId !== undefined) {
     dbRoom.currentcontrollingclientid = room.currentControllingClientId;
+  }
+  if (room.pw !== undefined) {
+    dbRoom.pw = room.pw;
   }
   if (room.info) {
     dbRoom.info = room.info;

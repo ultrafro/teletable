@@ -49,7 +49,7 @@ export default function HostPage() {
       const response = await fetch("/api/getHostRooms", {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
       });
 
@@ -88,7 +88,7 @@ export default function HostPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user.id}`,
+          Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
           roomId,

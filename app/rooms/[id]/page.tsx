@@ -26,7 +26,7 @@ export default function RoomPage() {
 
   useSignInAnonymouslyWhenRoomLoads();
 
-  const basicRoomInfo = useBasicRoomInfo(id as string, user);
+  const basicRoomInfo = useBasicRoomInfo(id as string, user, session);
 
   //if this is room host, show host view
   const isHost = basicRoomInfo?.isHost;
@@ -48,7 +48,9 @@ export default function RoomPage() {
       {/* <RoomStatus roomData={basicRoomInfo} user={user} /> */}
       <div className="flex-1 min-h-0">
         {isHost && <HostView roomData={basicRoomInfo} />}
-        {isClient && <ClientView roomData={basicRoomInfo} user={user} />}
+        {isClient && (
+          <ClientView roomData={basicRoomInfo} user={user} session={session} />
+        )}
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { RoomData } from "@/app/rooms/[id]/roomUI.model";
 export async function GET(request: NextRequest) {
   try {
     // Check authenticity
-    const auth = authenticateRequest(request.headers);
+    const auth = await authenticateRequest(request.headers);
     if (!auth.isValid || !auth.userId) {
       return createAuthError();
     }
@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
       hostPeerId: isHost || isApprovedClient ? room.hostPeerId : null,
       currentControllingClientId: room.currentControllingClientId,
       info: room.info,
+      roomPW: isHost ? room.pw || "" : "",
     };
 
     return NextResponse.json({
