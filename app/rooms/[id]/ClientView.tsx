@@ -86,18 +86,6 @@ export default function ClientView({
     [onStateUpdate]
   );
 
-  useEffect(() => {
-    const int = setInterval(() => {
-      if (typeof window !== "undefined") {
-        // console.log(
-        //   "currentState in useEffect",
-        //   currentState.current?.right?.joints?.[5]
-        // );
-      }
-    }, 1000);
-    return () => clearInterval(int);
-  }, [currentState]);
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const isInControl = user?.id === roomData.currentControllingClientId;
   const [roomPassword, setRoomPassword] = useState("");

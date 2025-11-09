@@ -24,7 +24,7 @@ export interface UseCameraResult {
 export function useCamera(): UseCameraResult {
   const [devices, setDevices] = useState<CameraDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const fakeVideoStream = useRef<MediaStream>(generateFakeVideoStream());
+  const fakeVideoStream = useRef<MediaStream>(generateFakeVideoStream()!);
   const [stream, setStream] = useState<MediaStream | null>(
     fakeVideoStream.current
   );
