@@ -1,4 +1,7 @@
 export function generateFakeVideoStream() {
+  if (typeof window === "undefined") {
+    return null;
+  }
   //create fake media stream with video
   const fakeVideoStream = new MediaStream();
   // Create a canvas-based video track
