@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useMemo, useState, RefObject } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   OrbitControls,
   Box,
@@ -16,6 +16,7 @@ import {
   ExternalGoal,
   HandDetection,
   LeftArmBasePosition,
+  MobileGoal,
   RightArmBasePosition,
   RobotVisualizerControlMode,
 } from "./teletable.model";
@@ -29,16 +30,61 @@ import { Vector3 } from "three";
 import IKRobotFrame from "./IKRobotFrame";
 import Compass from "./Compass";
 
+const X_CAMERA_OFFSET = -0.5;
+
+function OrbitControlsWithTarget({
+  focusedRobot,
+}: {
+  focusedRobot?: string | null;
+}) {
+  const controlsRef = useRef<any>(null);
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (!controlsRef.current) return;
+
+    const targetPosition =
+      focusedRobot === "left"
+        ? LeftArmBasePosition
+        : focusedRobot === "right"
+        ? RightArmBasePosition
+        : new Vector3(0, 0, 0); // Default to origin if no robot focused
+
+    // Update the target
+    controlsRef.current.target.copy(targetPosition);
+
+    // Update camera position x to center on the robot
+    camera.position.x = targetPosition.x + X_CAMERA_OFFSET;
+    controlsRef.current.update();
+  }, [focusedRobot, camera]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={true}
+      enableZoom={true}
+      enableRotate={true}
+      minDistance={0.1}
+      maxDistance={12}
+      minPolarAngle={0}
+      maxPolarAngle={Math.PI / 2}
+      makeDefault
+    />
+  );
+}
+
 export default function RobotVisualizer({
   currentState,
   controlMode,
   onJointValuesUpdate,
-  externalGoal,
+  mobileGoal,
+  focusedRobot,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   controlMode: RobotVisualizerControlMode;
   onJointValuesUpdate?: (robotId: string, jointValues: number[]) => void;
-  externalGoal?: ExternalGoal;
+  mobileGoal?: MobileGoal;
+  focusedRobot?: string | null;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -59,7 +105,7 @@ export default function RobotVisualizer({
       }}
     >
       <Canvas
-        camera={{ position: [0, 4, 1], fov: 50 }}
+        camera={{ position: [0, 1.5, 1.5], fov: 50 }}
         shadows
         style={{
           background: "linear-gradient(to bottom, #e6f3ff 0%, #cce7ff 100%)",
@@ -114,7 +160,7 @@ export default function RobotVisualizer({
             handId="left"
             basePosition={LeftArmBasePosition}
             controlMode={controlMode}
-            externalGoal={externalGoal}
+            externalGoal={mobileGoal?.[focusedRobot ?? "right"]}
             onJointValuesUpdate={onJointValuesUpdate}
           />
 
@@ -123,20 +169,11 @@ export default function RobotVisualizer({
             handId="right"
             basePosition={RightArmBasePosition}
             controlMode={controlMode}
-            externalGoal={externalGoal}
+            externalGoal={mobileGoal?.[focusedRobot ?? "right"]}
             onJointValuesUpdate={onJointValuesUpdate}
           />
 
-          <OrbitControls
-            enablePan={true}
-            enableZoom={true}
-            enableRotate={true}
-            minDistance={0.1}
-            maxDistance={12}
-            minPolarAngle={0}
-            maxPolarAngle={Math.PI / 2}
-            makeDefault
-          />
+          <OrbitControlsWithTarget focusedRobot={focusedRobot} />
         </>
       </Canvas>
     </div>

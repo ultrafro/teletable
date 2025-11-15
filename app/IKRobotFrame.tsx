@@ -40,11 +40,7 @@ export default function IKRobotFrame({
   useEffect(() => {
     if (externalGoal && controlMode === "ExternalGoal") {
       handPosition.current = externalGoal.position;
-      handOtherValues.current = {
-        roll: externalGoal.roll,
-        pitch: externalGoal.pitch,
-        gripper: externalGoal.gripper,
-      };
+      handOtherValues.current = externalGoal;
     }
   }, [externalGoal]);
 

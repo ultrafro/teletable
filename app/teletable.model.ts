@@ -68,3 +68,5 @@ export type ExternalGoal = {
   pitch: number;
   gripper: number;
 };
+
+export type MobileGoal = Record<string, ExternalGoal>;

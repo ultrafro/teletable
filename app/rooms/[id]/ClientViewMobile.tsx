@@ -1,4 +1,4 @@
-import { DataFrame, ExternalGoal } from "@/app/teletable.model";
+import { DataFrame, ExternalGoal, MobileGoal } from "@/app/teletable.model";
 import {
   RefObject,
   useEffect,
@@ -36,12 +36,22 @@ export function ClientViewMobile({
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const externalGoal = useRef<ExternalGoal>({
-    position: new Vector3(0, 0, 0),
-    roll: 0,
-    pitch: 0,
-    gripper: 0,
+  const mobileGoal = useRef<MobileGoal>({
+    right: {
+      position: new Vector3(0, 0, 0),
+      roll: 0,
+      pitch: 0,
+      gripper: 0,
+    },
+    left: {
+      position: new Vector3(0, 0, 0),
+      roll: 0,
+      pitch: 0,
+      gripper: 0,
+    },
   });
+
+  const [focusedRobot, setFocusedRobot] = useState<string | null>("right");
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-background">
@@ -51,7 +61,8 @@ export function ClientViewMobile({
           currentState={currentState}
           controlMode="ExternalGoal"
           onJointValuesUpdate={handleJointValuesUpdate}
-          externalGoal={externalGoal.current}
+          mobileGoal={mobileGoal.current}
+          focusedRobot={focusedRobot}
         />
       </div>
 
@@ -145,6 +156,13 @@ export function ClientViewMobile({
               isInControl={isInControl}
             />
           </div>
+
+          <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+            <MobileRobotSelectorSection
+              focusedRobot={focusedRobot}
+              setFocusedRobot={setFocusedRobot}
+            />
+          </div>
         </div>
       </div>
 
@@ -167,7 +185,8 @@ export function ClientViewMobile({
       >
         <MobileControlSection
           isInControl={isInControl}
-          externalGoal={externalGoal}
+          mobileGoal={mobileGoal}
+          focusedRobot={focusedRobot}
         />
       </div>
     </div>
@@ -303,12 +322,50 @@ function MobileControlRequestSection({
   );
 }
 
+function MobileRobotSelectorSection({
+  focusedRobot,
+  setFocusedRobot,
+}: {
+  focusedRobot: string | null;
+  setFocusedRobot: (robot: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-medium text-gray-700">Control Robot</label>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setFocusedRobot("left")}
+          className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
+            focusedRobot === "left"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+          }`}
+        >
+          Left
+        </button>
+        <button
+          onClick={() => setFocusedRobot("right")}
+          className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
+            focusedRobot === "right"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+          }`}
+        >
+          Right
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MobileControlSection({
   isInControl,
-  externalGoal,
+  mobileGoal,
+  focusedRobot,
 }: {
   isInControl: boolean;
-  externalGoal: MutableRefObject<ExternalGoal>;
+  mobileGoal: MutableRefObject<MobileGoal>;
+  focusedRobot: string | null;
 }) {
   // if (!isInControl) {
   //   return null;
@@ -316,74 +373,184 @@ function MobileControlSection({
 
   return (
     <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-gray-200 shadow-xl p-2">
-      <div className="flex items-center justify-between gap-2">
-        {/* Left column */}
-        <div className="flex flex-col gap-2 flex-1">
-          <ControlRow
-            label="Wrist"
-            externalGoal={externalGoal}
-            field="roll"
-            step={0.01}
-          />
-          <ControlRow
-            label="Pitch"
-            externalGoal={externalGoal}
-            field="pitch"
-            step={0.01}
-          />
-        </div>
+      <div className="flex items-center justify-center gap-4">
+        {/* Left: Wrist */}
+        <ControlColumn
+          label="Wrist"
+          onChange={(delta: number) => {
+            if (focusedRobot) {
+              const minRoll = -180;
+              const maxRoll = 180;
+              const newRoll = Math.max(
+                minRoll,
+                Math.min(maxRoll, mobileGoal.current[focusedRobot].roll + delta)
+              );
+              mobileGoal.current[focusedRobot].roll += delta;
+            }
+          }}
+          step={1}
+        />
+
+        {/* Left: Pitch */}
+        <ControlColumn
+          label="Pitch"
+          onChange={(delta: number) => {
+            if (focusedRobot) {
+              const minPitch = -90;
+              const maxPitch = 90;
+              const newPitch = Math.max(
+                minPitch,
+                Math.min(
+                  maxPitch,
+                  mobileGoal.current[focusedRobot].pitch + delta
+                )
+              );
+              mobileGoal.current[focusedRobot].pitch = newPitch;
+            }
+          }}
+          step={1}
+        />
 
         {/* Center: Joystick */}
         <div className="flex-shrink-0">
-          <Joystick externalGoal={externalGoal} speed={0.01} />
+          <Joystick
+            onChange={(deltaX: number, deltaY: number) => {
+              if (focusedRobot) {
+                const minX = -0.5;
+                const maxX = 0.5;
+
+                const minZ = -1;
+                const maxZ = 0;
+
+                const newX = Math.max(
+                  minX,
+                  Math.min(
+                    maxX,
+                    mobileGoal.current[focusedRobot].position.x + deltaX
+                  )
+                );
+                const newZ = Math.max(
+                  minZ,
+                  Math.min(
+                    maxZ,
+                    mobileGoal.current[focusedRobot].position.z - deltaY
+                  )
+                );
+
+                mobileGoal.current[focusedRobot].position.x = newX;
+                mobileGoal.current[focusedRobot].position.z = newZ;
+              }
+            }}
+            speed={0.01}
+          />
         </div>
 
-        {/* Right column */}
-        <div className="flex flex-col gap-2 flex-1">
-          <ControlRow
-            label="Gripper"
-            externalGoal={externalGoal}
-            field="gripper"
-            step={0.01}
-          />
-          <ControlRow
-            label="Height"
-            externalGoal={externalGoal}
-            field="height"
-            step={0.01}
-          />
-        </div>
+        {/* Right: Gripper */}
+        <ControlColumn
+          label="Gripper"
+          onChange={(delta: number) => {
+            if (focusedRobot) {
+              const minGripper = 0;
+              const maxGripper = 360;
+              const newGripper = Math.max(
+                minGripper,
+                Math.min(
+                  maxGripper,
+                  mobileGoal.current[focusedRobot].gripper + delta
+                )
+              );
+              mobileGoal.current[focusedRobot].gripper = newGripper;
+            }
+          }}
+          step={1}
+        />
+
+        {/* Right: Height */}
+        <ControlColumn
+          label="Height"
+          onChange={(delta: number) => {
+            if (focusedRobot) {
+              const minHeight = 0;
+              const maxHeight = 1;
+              const newHeight = Math.max(
+                minHeight,
+                Math.min(
+                  maxHeight,
+                  mobileGoal.current[focusedRobot].position.y + delta
+                )
+              );
+              mobileGoal.current[focusedRobot].position.y = newHeight;
+            }
+          }}
+          step={0.01}
+        />
       </div>
     </div>
   );
 }
 
-function ControlRow({
+function ControlColumn({
   label,
-  externalGoal,
-  field,
+  onChange,
   step,
 }: {
   label: string;
-  externalGoal: MutableRefObject<ExternalGoal>;
-  field: string;
+  onChange: (delta: number) => void;
   step: number;
 }) {
-  const handleDown = useCallback(() => {
-    if (field == "height") {
-      externalGoal.current.position.y -= step;
-    } else {
-      (externalGoal.current as any)[field] -= step;
-    }
-  }, [label]);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isPressedRef = useRef(false);
 
-  const handleUp = useCallback(() => {
-    if (field == "height") {
-      externalGoal.current.position.y += step;
-    } else {
-      (externalGoal.current as any)[field] += step;
+  const stopRepeating = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-  }, [label]);
+    isPressedRef.current = false;
+  }, []);
+
+  const startRepeating = useCallback(
+    (delta: number) => {
+      // Stop any existing interval first
+      stopRepeating();
+
+      isPressedRef.current = true;
+
+      // Immediate first action
+      onChange(delta);
+
+      // Then repeat with interval
+      intervalRef.current = setInterval(() => {
+        onChange(delta);
+      }, 50); // Repeat every 50ms
+    },
+    [onChange, stopRepeating]
+  );
+
+  const handleDown = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault();
+      startRepeating(-step);
+    },
+    [startRepeating, step]
+  );
+
+  const handleUp = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault();
+      startRepeating(step);
+    },
+    [startRepeating, step]
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   const getIcon = () => {
     switch (label) {
@@ -457,30 +624,13 @@ function ControlRow({
   };
 
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div className="flex flex-col items-center justify-center gap-1">
       <button
-        onClick={handleDown}
-        className="w-8 h-8 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg flex items-center justify-center transition-colors touch-manipulation"
-      >
-        <svg
-          className="w-4 h-4 text-gray-700"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-      <div className="w-7 h-7 flex items-center justify-center">
-        {getIcon()}
-      </div>
-      <button
-        onClick={handleUp}
+        onMouseDown={handleUp}
+        onMouseUp={stopRepeating}
+        onMouseLeave={stopRepeating}
+        onTouchStart={handleUp}
+        onTouchEnd={stopRepeating}
         className="w-8 h-8 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg flex items-center justify-center transition-colors touch-manipulation"
       >
         <svg
@@ -494,6 +644,31 @@ function ControlRow({
             strokeLinejoin="round"
             strokeWidth={2}
             d="M5 15l7-7 7 7"
+          />
+        </svg>
+      </button>
+      <div className="w-7 h-7 flex items-center justify-center">
+        {getIcon()}
+      </div>
+      <button
+        onMouseDown={handleDown}
+        onMouseUp={stopRepeating}
+        onMouseLeave={stopRepeating}
+        onTouchStart={handleDown}
+        onTouchEnd={stopRepeating}
+        className="w-8 h-8 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-lg flex items-center justify-center transition-colors touch-manipulation"
+      >
+        <svg
+          className="w-4 h-4 text-gray-700"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
           />
         </svg>
       </button>

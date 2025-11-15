@@ -8,10 +8,10 @@ import {
 } from "react";
 
 export function Joystick({
-  externalGoal,
+  onChange,
   speed,
 }: {
-  externalGoal: MutableRefObject<ExternalGoal>;
+  onChange: (deltaX: number, deltaY: number) => void;
   speed: number;
 }) {
   const joystickRef = useRef<HTMLDivElement>(null);
@@ -130,10 +130,10 @@ export function Joystick({
         : 0.016; // Default to ~60fps on first frame
 
       // Apply velocity to position (relative/incremental control)
-      externalGoal.current.position.x +=
-        velocityRef.current.x * speed * deltaTime * 60; // Scale by 60 for consistent speed
-      externalGoal.current.position.z +=
-        -velocityRef.current.z * speed * deltaTime * 60;
+      onChange(
+        velocityRef.current.x * speed * deltaTime * 60,
+        velocityRef.current.z * speed * deltaTime * 60
+      );
 
       lastUpdateTimeRef.current = currentTime;
       continuousUpdateRef.current = requestAnimationFrame(updateLoop);
@@ -148,7 +148,7 @@ export function Joystick({
       }
       lastUpdateTimeRef.current = null;
     };
-  }, [isDragging, externalGoal]);
+  }, [isDragging, onChange]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
