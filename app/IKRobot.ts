@@ -194,12 +194,18 @@ export class IKRobot {
     }
   }
 
+  lastPitchValue: number = 0;
+  lastGripperValue: number = 0;
+  lastWristValue: number = 0;
   setGoalTransform(
     position: Vector3,
     pitch: number,
     roll: number,
     gripper: number
   ) {
+    this.lastPitchValue = pitch;
+    this.lastGripperValue = gripper;
+    this.lastWristValue = roll;
     this.goal.setPosition(position.x, position.y, position.z);
     // this.wristGoal.setTargetValue(DOF.EZ, roll);
     // this.pitchGoal.setTargetValue(DOF.EZ, pitch);
@@ -254,6 +260,22 @@ export class IKRobot {
       const start = performance.now();
       this.solver.solve();
       const end = performance.now();
+
+      //set the values for pitch, gripper, and wrist
+      // this.pitchJoint.setDoFValue(DOF.EZ, (this.directValues[3] * Math.PI) / 180);
+      this.gripperJoint.setDoFValue(
+        DOF.EZ,
+        (this.lastGripperValue * Math.PI) / 180
+      );
+      this.wristJoint.setDoFValue(
+        DOF.EZ,
+        (this.lastWristValue * Math.PI) / 180
+      );
+      // this.wristJoint.setDoFValue(DOF.EZ, (this.directValues[4] * Math.PI) / 180);
+      this.pitchJoint.setDoFValue(
+        DOF.EZ,
+        (this.lastPitchValue * Math.PI) / 180
+      );
     }
 
     this.ikRobot.updateMatrixWorld();

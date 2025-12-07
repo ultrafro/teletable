@@ -21,8 +21,14 @@ export function usePeer(
   const localStream = useRef<MediaStream | null>(defaultStream || null);
 
   const resetPeer = useCallback(async () => {
+    const existingPeer = peer;
+
     setIsConnected(false);
     setPeer(null);
+
+    if (existingPeer) {
+      existingPeer.destroy();
+    }
 
     const newPeer = new Peer({
       debug: 1,
@@ -33,8 +39,13 @@ export function usePeer(
 
     let newPeerToReturn: Peer | null = null;
 
+    let isCreatingPeer = true;
+
+    console.log("creating new peer, waiting for connection open...");
+
     await new Promise((resolve, reject) => {
       newPeer.on("open", () => {
+        isCreatingPeer = false;
         console.log("peer opened with id:", newPeer.id);
         newPeerToReturn = newPeer;
         setIsConnected(true);
