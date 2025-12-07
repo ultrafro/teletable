@@ -1,7 +1,23 @@
-import { Box, Cylinder, PivotControls, Sphere, Text } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Group, Matrix4, Mesh, Quaternion, Vector3 } from "three";
+import {
+  Box,
+  Cylinder,
+  DragControls,
+  PivotControls,
+  Sphere,
+  Text,
+} from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Group,
+  Matrix4,
+  Mesh,
+  Plane,
+  Quaternion,
+  Raycaster,
+  Vector2,
+  Vector3,
+} from "three";
 import { HandDetection, RobotOtherValues } from "./teletable.model";
 import ControlSliders from "./ControlSliders";
 
@@ -94,6 +110,11 @@ export default function ControlPointVisualizer({
     otherValues.roll = wristValue;
   }, [wristValue, gripperValue, pitchValue]);
 
+  const directBallControl = true;
+  const { camera } = useThree();
+  const dragStartPosRef = useRef<Vector3 | null>(null);
+  const dragPlaneRef = useRef<Plane | null>(null);
+
   return (
     <group>
       {/* Main hand rectangle - made thicker for visibility */}
@@ -110,43 +131,116 @@ export default function ControlPointVisualizer({
         />
       </Box> */}
 
-      <PivotControls
-        key={"pivot-control-" + handId}
-        anchor={[0, 0, 0]}
-        matrix={handMatrix}
-        //   matrix={leftHandMatrix}
-        enabled={true}
-        scale={0.2}
-        lineWidth={3}
-        fixed={false}
-        activeAxes={[true, true, true]}
-        disableRotations={true}
-        disableScaling={true}
-        axisColors={["#ef4444", "#22c55e", "#3b82f6"]}
-        hoveredColor="#f59e0b"
-        annotations={true}
-        autoTransform={false}
-        onDrag={(localMatrix, deltaLocal, worldMatrix, deltaWorld) => {
-          const newPosition = new Vector3();
-          const rotation = new Quaternion();
-          const scale = new Vector3();
-          localMatrix.decompose(newPosition, rotation, scale);
+      {directBallControl ? (
+        <DragControls
+          matrix={handMatrix}
+          autoTransform={false}
+          onDragStart={(origin) => {
+            // Store the starting position and create the drag plane
+            dragStartPosRef.current = origin.clone();
+            const cameraDirection = new Vector3();
+            camera.getWorldDirection(cameraDirection);
+            dragPlaneRef.current = new Plane(cameraDirection, 0);
+            dragPlaneRef.current.constant =
+              -dragPlaneRef.current.normal.dot(origin);
+          }}
+          onDrag={(localMatrix, deltaLocal, worldMatrix, deltaWorld) => {
+            const newPosition = new Vector3();
+            const rotation = new Quaternion();
+            const scale = new Vector3();
+            localMatrix.decompose(newPosition, rotation, scale);
 
-          position.x = newPosition.x + 0 * offset.x;
-          position.y = newPosition.y + 0 * offset.y;
-          position.z = newPosition.z + 0 * offset.z;
-          // handData.orientation.x = rotation.x;
-          // handData.orientation.y = rotation.y;
-          // handData.orientation.z = rotation.z;
-          // handData.orientation.w = rotation.w;
+            position.x = newPosition.x + 0 * offset.x;
+            position.y = newPosition.y + 0 * offset.y;
+            position.z = newPosition.z + 0 * offset.z;
+            setHandMatrix(localMatrix.clone());
 
-          setHandMatrix(localMatrix.clone());
-        }}
-      >
-        <Sphere args={[0.01]}>
-          <meshStandardMaterial color="#ef4444" transparent opacity={0.6} />
-        </Sphere>
-      </PivotControls>
+            // // Get the new world position from the drag
+            // const newWorldPos = new Vector3();
+            // worldMatrix.decompose(
+            //   newWorldPos,
+            //   new Quaternion(),
+            //   new Vector3(1, 1, 1)
+            // );
+
+            // // Project the position onto the fixed drag plane
+            // const projectedPos = new Vector3();
+            // if (dragPlaneRef.current) {
+            //   dragPlaneRef.current.projectPoint(newWorldPos, projectedPos);
+            // } else {
+            //   projectedPos.copy(newWorldPos);
+            // }
+
+            // // Update hand matrix with projected position
+            // const newMatrix = new Matrix4().compose(
+            //   projectedPos,
+            //   new Quaternion(),
+            //   new Vector3(1, 1, 1)
+            // );
+
+            // setHandMatrix(newMatrix);
+
+            // Update position reference
+            // position.x = projectedPos.x;
+            // position.y = projectedPos.y;
+            // position.z = projectedPos.z;
+          }}
+          onDragEnd={() => {
+            dragStartPosRef.current = null;
+            dragPlaneRef.current = null;
+          }}
+        >
+          <Sphere args={[0.02]} renderOrder={999}>
+            <meshStandardMaterial
+              color="#ef4444"
+              transparent
+              opacity={0.5}
+              emissive="#ef4444"
+              emissiveIntensity={0.5}
+              depthTest={false}
+              depthWrite={false}
+            />
+          </Sphere>
+        </DragControls>
+      ) : (
+        <PivotControls
+          key={"pivot-control-" + handId}
+          anchor={[0, 0, 0]}
+          matrix={handMatrix}
+          //   matrix={leftHandMatrix}
+          enabled={true}
+          scale={0.2}
+          lineWidth={3}
+          fixed={false}
+          activeAxes={[true, true, true]}
+          disableRotations={true}
+          disableScaling={true}
+          axisColors={["#ef4444", "#22c55e", "#3b82f6"]}
+          hoveredColor="#f59e0b"
+          annotations={true}
+          autoTransform={false}
+          onDrag={(localMatrix, deltaLocal, worldMatrix, deltaWorld) => {
+            const newPosition = new Vector3();
+            const rotation = new Quaternion();
+            const scale = new Vector3();
+            localMatrix.decompose(newPosition, rotation, scale);
+
+            position.x = newPosition.x + 0 * offset.x;
+            position.y = newPosition.y + 0 * offset.y;
+            position.z = newPosition.z + 0 * offset.z;
+            // handData.orientation.x = rotation.x;
+            // handData.orientation.y = rotation.y;
+            // handData.orientation.z = rotation.z;
+            // handData.orientation.w = rotation.w;
+
+            setHandMatrix(localMatrix.clone());
+          }}
+        >
+          <Sphere args={[0.01]}>
+            <meshStandardMaterial color="#ef4444" transparent opacity={0.6} />
+          </Sphere>
+        </PivotControls>
+      )}
 
       {/* Three sliders for wrist, pitch, and gripper */}
       <ControlSliders
