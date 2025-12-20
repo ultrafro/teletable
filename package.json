@@ -16,10 +16,10 @@
     "@types/three": "^0.180.0",
     "closed-chain-ik": "^0.0.3",
     "nanoid": "^5.1.5",
-    "next": "15.5.2",
+    "next": "15.5.9",
     "peerjs": "^1.5.5",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.2",
+    "react-dom": "19.2",
     "three": "^0.180.0",
     "three-ik": "^0.1.0",
     "urdf-loader": "^0.12.6"
