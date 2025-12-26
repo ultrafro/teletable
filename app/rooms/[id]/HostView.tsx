@@ -176,7 +176,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
 
   const isRoomReady = roomData.hostPeerId !== null;
 
-  const { linkCopied, handleCopyInviteLink } = useInviteLink();
+  const { linkCopied, handleCopyInviteLink } = useInviteLink(roomData.roomId);
 
   const handleUpdatePassword = useCallback(async () => {
     if (!user || !roomData.roomId) return;
