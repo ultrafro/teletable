@@ -29,15 +29,18 @@ import { useIsMobile } from "./useIsMobile";
 import { ClientViewMobile } from "./ClientViewMobile";
 import { ClientViewDesktop } from "./ClientViewDesktop";
 import { useAuth } from "@/app/lib/auth";
+import { useAutoRequestControlIfHost } from "./useAutoRequestControlIfHost";
 
 export default function ClientView({
   roomData,
   user,
   session,
+  refetchRoomData,
 }: {
   roomData: RoomData;
   user: User | null;
   session: Session | null;
+  refetchRoomData?: () => void;
 }) {
   const peer = usePeer();
 
@@ -89,7 +92,23 @@ export default function ClientView({
 
   // Custom hooks
   const { handleRequestControl, isRequestingControl, requestStatus } =
-    useControlRequest(user, session, roomData.roomId, roomPassword);
+    useControlRequest(
+      user,
+      session,
+      roomData.roomId,
+      roomPassword,
+      refetchRoomData,
+      roomData.isHost
+    );
+
+  // Auto-request control if user is the host viewing as client
+  useAutoRequestControlIfHost(
+    roomData,
+    user,
+    isInControl,
+    isRequestingControl,
+    handleRequestControl
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -101,6 +120,7 @@ export default function ClientView({
   // console.log("roomData", roomData);
 
   const isMobile = useIsMobile();
+  console.log('[DEV] is in control', isInControl, 'remote stream', remoteStream);
 
   if (isMobile) {
     return (

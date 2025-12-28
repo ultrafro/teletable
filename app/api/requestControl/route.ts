@@ -35,7 +35,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
-    // Add to requesting client IDs
+    // Check if the requester is the host - if so, auto-approve
+    if (room.hostId === clientId) {
+      // Auto-approve by directly setting the controlling client
+      const approvedRoom = await RoomManager.setControllingClient(
+        roomId,
+        clientId
+      );
+      if (!approvedRoom) {
+        return NextResponse.json(
+          { error: "Failed to auto-approve host control request" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Control automatically granted (host)",
+        requestStatus: "approved",
+        autoApproved: true,
+      });
+    }
+
+    // Add to requesting client IDs for non-host users
     const updatedRoom = await RoomManager.addRequestingClient(
       roomId,
       clientId,

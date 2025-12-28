@@ -7,40 +7,40 @@ import { useBasicRoomInfo } from "@/app/rooms/[id]/useBasicRoomInfo";
 import { useSignInAnonymouslyWhenRoomLoads } from "@/app/rooms/[id]/useSignInAnonymouslyWhenRoomLoads";
 
 export default function HostRoomPage() {
-  const { roomId } = useParams();
-  const router = useRouter();
-  const { user, session, loading: authLoading } = useAuth();
+    const { roomId } = useParams();
+    const router = useRouter();
+    const { user, session, loading: authLoading } = useAuth();
 
-  useSignInAnonymouslyWhenRoomLoads();
+    useSignInAnonymouslyWhenRoomLoads();
 
-  const basicRoomInfo = useBasicRoomInfo(roomId as string, user, session);
+    const { roomData: basicRoomInfo } = useBasicRoomInfo(roomId as string, user, session);
 
-  // Redirect if not host
-  if (basicRoomInfo && !basicRoomInfo.isHost) {
-    router.push(`/room/${roomId}`);
-    return null;
-  }
+    // Redirect if not host
+    if (basicRoomInfo && !basicRoomInfo.isHost) {
+        router.push(`/room/${roomId}`);
+        return null;
+    }
 
-  if (authLoading || !basicRoomInfo) {
+    if (authLoading || !basicRoomInfo) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
+                    <p className="text-foreground text-lg">Loading Room...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
-          <p className="text-foreground text-lg">Loading Room...</p>
+        <div
+            className="h-screen bg-background text-foreground flex flex-col overflow-hidden"
+            style={{ height: "100dvh" }}
+        >
+            <div className="flex-1 min-h-0">
+                <HostView roomData={basicRoomInfo} />
+            </div>
         </div>
-      </div>
     );
-  }
-
-  return (
-    <div
-      className="h-screen bg-background text-foreground flex flex-col overflow-hidden"
-      style={{ height: "100dvh" }}
-    >
-      <div className="flex-1 min-h-0">
-        <HostView roomData={basicRoomInfo} />
-      </div>
-    </div>
-  );
 }
 

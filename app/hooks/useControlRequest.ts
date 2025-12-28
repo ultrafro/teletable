@@ -6,7 +6,9 @@ export function useControlRequest(
   user: User | null,
   session: Session | null,
   roomId: string | null,
-  pw?: string
+  pw?: string,
+  refetchRoomData?: () => void,
+  isHost?: boolean
 ) {
   const [isRequestingControl, setIsRequestingControl] = useState(false);
   const [requestStatus, setRequestStatus] = useState<string | null>(null);
@@ -34,7 +36,15 @@ export function useControlRequest(
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setRequestStatus("Request sent successfully!");
+        if (data.autoApproved) {
+          setRequestStatus("Control granted instantly!");
+          // Immediately refetch room data to get updated control status
+          if (refetchRoomData) {
+            refetchRoomData();
+          }
+        } else {
+          setRequestStatus("Request sent successfully!");
+        }
       } else {
         setRequestStatus(data.error || "Failed to send request");
       }
@@ -44,7 +54,7 @@ export function useControlRequest(
     } finally {
       setIsRequestingControl(false);
     }
-  }, [user, session, roomId, pw]);
+  }, [user, session, roomId, pw, refetchRoomData]);
 
   return {
     handleRequestControl,

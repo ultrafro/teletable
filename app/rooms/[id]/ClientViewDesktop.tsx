@@ -175,9 +175,8 @@ export function RemoteViewSection({
           <div className="text-xs text-foreground/70">
             <div className="flex items-center space-x-2">
               <div
-                className={`w-2 h-2 rounded-full ${
-                  remoteStream ? "bg-green-500" : "bg-yellow-500"
-                }`}
+                className={`w-2 h-2 rounded-full ${remoteStream ? "bg-green-500" : "bg-yellow-500"
+                  }`}
               ></div>
               <span>
                 {remoteStream
@@ -217,9 +216,8 @@ export function ConnectionStatusSection({
           <span className="text-sm text-foreground/70">PeerJS</span>
           <div className="flex items-center space-x-2">
             <div
-              className={`w-2 h-2 rounded-full ${
-                peerIsConnected ? "bg-green-500" : "bg-red-500"
-              }`}
+              className={`w-2 h-2 rounded-full ${peerIsConnected ? "bg-green-500" : "bg-red-500"
+                }`}
             ></div>
             <span className="text-sm">
               {peerIsConnected ? "Connected" : "Disconnected"}
@@ -231,9 +229,8 @@ export function ConnectionStatusSection({
           <span className="text-sm text-foreground/70">Video Call</span>
           <div className="flex items-center space-x-2">
             <div
-              className={`w-2 h-2 rounded-full ${
-                remoteStream ? "bg-green-500" : "bg-gray-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${remoteStream ? "bg-green-500" : "bg-gray-400"
+                }`}
             ></div>
             <span className="text-sm">
               {remoteStream ? "Active" : "Inactive"}
@@ -245,9 +242,8 @@ export function ConnectionStatusSection({
           <span className="text-sm text-foreground/70">Control Status</span>
           <div className="flex items-center space-x-2">
             <div
-              className={`w-2 h-2 rounded-full ${
-                isInControl ? "bg-green-500" : "bg-gray-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${isInControl ? "bg-green-500" : "bg-gray-400"
+                }`}
             ></div>
             <span className="text-sm">
               {isInControl ? "In Control" : "No Control"}
@@ -283,11 +279,10 @@ export function ControlRequestSection({
           </button>
           {requestStatus && (
             <p
-              className={`text-xs mt-2 ${
-                requestStatus.includes("successfully")
-                  ? "text-green-600"
-                  : "text-red-600"
-              }`}
+              className={`text-xs mt-2 ${requestStatus.includes("successfully")
+                ? "text-green-600"
+                : "text-red-600"
+                }`}
             >
               {requestStatus}
             </p>

@@ -12,7 +12,7 @@ export default function ClientRoomPage() {
 
     useSignInAnonymouslyWhenRoomLoads();
 
-    const basicRoomInfo = useBasicRoomInfo(roomId as string, user, session);
+    const { roomData: basicRoomInfo, refetchRoomData } = useBasicRoomInfo(roomId as string, user, session);
 
     if (authLoading || !basicRoomInfo) {
         return (
@@ -35,6 +35,7 @@ export default function ClientRoomPage() {
                     roomData={basicRoomInfo}
                     user={user}
                     session={session}
+                    refetchRoomData={refetchRoomData}
                 />
             </div>
         </div>

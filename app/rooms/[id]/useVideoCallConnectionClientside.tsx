@@ -57,7 +57,7 @@ export function useVideoCallConnectionClientside(
       setActiveCall(null);
       setRemoteStream(null);
     };
-  }, [hostPeerId, peer]);
+  }, [hostPeerId, peer.peer, peer.isConnected]);
 
   return remoteStream;
 }

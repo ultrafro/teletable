@@ -50,5 +50,5 @@ export function useBasicRoomInfo(roomId: string, user: User | null, session: Ses
     return () => clearInterval(interval);
   }, [fetchRoomData, roomData?.isHost]);
 
-  return roomData;
+  return { roomData, refetchRoomData: fetchRoomData };
 }
