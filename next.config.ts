@@ -2,11 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
-    // Add aliases for deprecated Three.js BufferGeometry exports
-    // This fixes compatibility issues with packages like closed-chain-ik
-    // that still use the old BufferGeometry naming convention
+    // Ensure all Three.js imports resolve to the same instance
+    // This prevents "Multiple instances of Three.js" warnings
     config.resolve.alias = {
       ...config.resolve.alias,
+      // Force all three imports to use the same instance
+      three: require.resolve('three'),
       // Map deprecated BufferGeometry exports to their new names
       "three/src/geometries/BoxBufferGeometry":
         "three/src/geometries/BoxGeometry",

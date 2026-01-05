@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./lib/auth";
@@ -16,12 +16,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Teletable - Remote Robot Arm Control",
   description: "Control robot arms on tables anywhere in the world. Help others complete chores remotely with precision and ease.",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    viewportFit: "cover",
-  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

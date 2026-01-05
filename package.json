@@ -9,18 +9,20 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.15",
-    "@react-three/drei": "^10.7.4",
-    "@react-three/fiber": "^9.3.0",
+    "@react-three/drei": "rc",
+    "@react-three/fiber": "rc",
+    "@react-three/eslint-plugin": "^0.1.1",
+    "@react-three/xr": "^6.6.28",
     "@supabase/supabase-js": "^2.57.4",
     "@types/peerjs": "^1.1.0",
-    "@types/three": "^0.180.0",
+    "@types/three": "latest",
     "closed-chain-ik": "^0.0.3",
     "nanoid": "^5.1.5",
     "next": "15.5.9",
     "peerjs": "^1.5.5",
     "react": "19.2",
     "react-dom": "19.2",
-    "three": "^0.180.0",
+    "three": "^0.182.0",
     "three-ik": "^0.1.0",
     "urdf-loader": "^0.12.6"
   },
@@ -32,5 +34,10 @@
     "patch-package": "^8.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "overrides": {
+      "three": "^0.182.0"
+    }
   }
 }
