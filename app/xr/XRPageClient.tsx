@@ -1,6 +1,6 @@
 'use client'
 import { XRStore, createXRStore } from '@react-three/xr'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { XR } from '@react-three/xr'
 
@@ -45,6 +45,8 @@ export function XrPageClient() {
         })
     }, [])
 
+    const videoRef = useRef<HTMLVideoElement>(null);
+
     if (!store) {
         return <div>Loading...</div>
     }
@@ -52,12 +54,15 @@ export function XrPageClient() {
 
 
     return <>
-        <button 
+        <button
             onClick={() => store.enterVR()}
             style={{ position: 'absolute', zIndex: 1 }}
         >
             Enter VR
         </button>
+
+
+
         <Canvas style={{ position: 'absolute', inset: 0, touchAction: 'none' }}>
             <XR store={store}>
                 <ambientLight intensity={0.5} />

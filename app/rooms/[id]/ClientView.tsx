@@ -30,6 +30,8 @@ import { ClientViewMobile } from "./ClientViewMobile";
 import { ClientViewDesktop } from "./ClientViewDesktop";
 import { useAuth } from "@/app/lib/auth";
 import { useAutoRequestControlIfHost } from "./useAutoRequestControlIfHost";
+import { createXRStore, XRStore } from "@react-three/xr";
+import XRPageClient from "./ClientViewXR";
 
 export default function ClientView({
   roomData,
@@ -116,11 +118,35 @@ export default function ClientView({
     }
   }, [peer]);
 
+  const [isInXR, setIsInXR] = useState(false);
+  const [store, setStore] = useState<XRStore | null>(null);
+  const onEnterXR = useCallback(() => {
+    setIsInXR(true);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        console.log('Creating XR store')
+        setStore(createXRStore({
+          emulate: { inject: true }
+        }))
+      }, 50)
+    })
+  }, []);
+
+  const onExitXR = useCallback(() => {
+    setIsInXR(false);
+    setStore(null);
+  }, []);
+
+
   // console.log("peer", peer);
   // console.log("roomData", roomData);
 
   const isMobile = useIsMobile();
   console.log('[DEV] is in control', isInControl, 'remote stream', remoteStream);
+
+  if (isInXR) {
+    return <XRPageClient store={store} remoteStream={remoteStream} onStateUpdate={onStateUpdate} onExitXR={onExitXR} />;
+  }
 
   if (isMobile) {
     return (
@@ -150,6 +176,7 @@ export default function ClientView({
         isRequestingControl={isRequestingControl}
         requestStatus={requestStatus}
         peerIsConnected={peer.isConnected}
+        onEnterXR={onEnterXR}
       />
     );
   }

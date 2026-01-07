@@ -13,6 +13,7 @@ export function ClientViewDesktop({
   isRequestingControl,
   peerIsConnected,
   requestStatus,
+  onEnterXR,
 }: {
   isInControl: boolean;
   currentState: RefObject<Record<string, DataFrame>>;
@@ -24,6 +25,7 @@ export function ClientViewDesktop({
   isRequestingControl: boolean;
   requestStatus: string | null;
   peerIsConnected: boolean;
+  onEnterXR: () => void;
 }) {
   return (
     <div className="h-full flex flex-col lg:flex-row bg-background overflow-hidden">
@@ -54,6 +56,16 @@ export function ClientViewDesktop({
       {/* Right side - Camera View and Control panel */}
       <div className="w-full lg:w-[400px] lg:flex-shrink-0 p-6 lg:border-l border-t lg:border-t-0 border-foreground/10 min-h-0">
         <div className="h-full flex flex-col space-y-6 overflow-y-auto relative">
+          {/* Enter XR Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={onEnterXR}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Enter XR
+            </button>
+          </div>
+
           {/* Room Password Section */}
           <RoomPasswordSection
             roomPassword={roomPassword}
