@@ -28,6 +28,9 @@ importers:
       '@react-three/fiber':
         specifier: rc
         version: 9.0.0-rc.10(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)(use-sync-external-store@1.5.0(react@19.2.3))
+      '@react-three/handle':
+        specifier: ^6.6.29
+        version: 6.6.29(@react-three/fiber@9.0.0-rc.10(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)(use-sync-external-store@1.5.0(react@19.2.3)))(@types/react@19.1.12)(react@19.2.3)(three@0.182.0)
       '@react-three/xr':
         specifier: ^6.6.28
         version: 6.6.28(@react-three/fiber@9.0.0-rc.10(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)(use-sync-external-store@1.5.0(react@19.2.3)))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)
@@ -401,8 +404,14 @@ packages:
   '@pmndrs/handle@6.6.28':
     resolution: {integrity: sha512-5qlu9PfEN0uEGRUBWAjHEN1zugvt4V0bNRDIAh5uWadVHJg7Obb0T8Rd/3/YOnjP9lM56KEGEG4WCnDAn6ZJ4A==}
 
+  '@pmndrs/handle@6.6.29':
+    resolution: {integrity: sha512-zfvakgxva2P5nB6HeOuSMGyFFFP6B5cRO61DeHKSm4z7WRW2FT8baaxW5izsYqymzc4Xutc9fpeIxbFL/GbmAw==}
+
   '@pmndrs/pointer-events@6.6.28':
     resolution: {integrity: sha512-kmZlcMsPiTHcotECLFbo6J/qQouX2ZeKNSMRwBWAF/EFesAV1uPwjar6SQDWkDH0fVB1snNbEoWLDLQ84tWOkw==}
+
+  '@pmndrs/pointer-events@6.6.29':
+    resolution: {integrity: sha512-o4YD6VfJgDYjFgde/YyAw2X5KY454tdmOXrHGOvKTWJBHzkL90B5vH4rqmexwRVvaDfT3YLvVh/Dm5cBbgZXMg==}
 
   '@pmndrs/xr@6.6.28':
     resolution: {integrity: sha512-/TV+w+7IWXrjiB/m9ozFfs6EcylGFJ2L4ajFplnz4/9nky77VhLaYcOJm+B67fjqCO69isCZNl8gbrs693aomA==}
@@ -447,6 +456,13 @@ packages:
         optional: true
       react-native:
         optional: true
+
+  '@react-three/handle@6.6.29':
+    resolution: {integrity: sha512-WL0cZkxYZw5ItLxSVYi2HsuovQHlquCfL4XgGdSvkSqhgD9WNXR47PYm8I3JLfP+oMhyYcbpJ+bnTsaoP5IHxw==}
+    peerDependencies:
+      '@react-three/fiber': '>=8'
+      react: '>=18'
+      three: ^0.182.0
 
   '@react-three/xr@6.6.28':
     resolution: {integrity: sha512-LtybrIpDE6co/FeQr130a1thUdovgqCyz2dy8izsz3PAph3uw+yZR/H+78AIzZ07FNH4xi9tlGHhBlgbbB2sJQ==}
@@ -1949,7 +1965,18 @@ snapshots:
       - immer
       - react
 
+  '@pmndrs/handle@6.6.29(@types/react@19.1.12)(react@19.2.3)':
+    dependencies:
+      '@pmndrs/pointer-events': 6.6.29
+      zustand: 4.5.7(@types/react@19.1.12)(react@19.2.3)
+    transitivePeerDependencies:
+      - '@types/react'
+      - immer
+      - react
+
   '@pmndrs/pointer-events@6.6.28': {}
+
+  '@pmndrs/pointer-events@6.6.29': {}
 
   '@pmndrs/xr@6.6.28(@types/react@19.1.12)(react@19.2.3)(three@0.182.0)':
     dependencies:
@@ -2026,6 +2053,18 @@ snapshots:
       - '@types/react'
       - immer
       - use-sync-external-store
+
+  '@react-three/handle@6.6.29(@react-three/fiber@9.0.0-rc.10(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)(use-sync-external-store@1.5.0(react@19.2.3)))(@types/react@19.1.12)(react@19.2.3)(three@0.182.0)':
+    dependencies:
+      '@pmndrs/handle': 6.6.29(@types/react@19.1.12)(react@19.2.3)
+      '@pmndrs/pointer-events': 6.6.29
+      '@react-three/fiber': 9.0.0-rc.10(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)(use-sync-external-store@1.5.0(react@19.2.3))
+      react: 19.2.3
+      three: 0.182.0
+      zustand: 4.5.7(@types/react@19.1.12)(react@19.2.3)
+    transitivePeerDependencies:
+      - '@types/react'
+      - immer
 
   '@react-three/xr@6.6.28(@react-three/fiber@9.0.0-rc.10(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)(use-sync-external-store@1.5.0(react@19.2.3)))(@types/react@19.1.12)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(three@0.182.0)':
     dependencies:
