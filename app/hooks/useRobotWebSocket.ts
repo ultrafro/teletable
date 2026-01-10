@@ -9,6 +9,7 @@ export interface RobotWebSocketResult {
   connect: () => void;
   disconnect: () => void;
   reconnect: () => void;
+  sendJointValuesToRobot: (robotId: string, jointValues: number[]) => void;
 }
 
 const DEFAULT_WS_URL = "ws://localhost:9000";
@@ -70,8 +71,7 @@ export function useRobotWebSocket(
           reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS
         ) {
           setLastError(
-            `Connection lost. Attempting to reconnect... (${
-              reconnectAttemptsRef.current + 1
+            `Connection lost. Attempting to reconnect... (${reconnectAttemptsRef.current + 1
             }/${MAX_RECONNECT_ATTEMPTS})`
           );
           reconnectAttemptsRef.current++;
@@ -168,6 +168,20 @@ export function useRobotWebSocket(
     };
   }, [clearReconnectTimeout]);
 
+
+  const sendJointValuesToRobot = useCallback(
+    (robotId: string, jointValues: number[]) => {
+      //console.log("jointValues", jointValues);
+      //console.log("robotWS.isConnected", robotWS.isConnected);
+      if (!isConnected) {
+        return;
+      }
+      //console.log("Joint values for", robotId, ":", jointValues);
+      sendHandData(robotId, [...jointValues]);
+    },
+    [isConnected, sendHandData]
+  );
+
   return {
     isConnected,
     isConnecting,
@@ -176,5 +190,6 @@ export function useRobotWebSocket(
     connect,
     disconnect,
     reconnect,
+    sendJointValuesToRobot,
   };
 }

@@ -235,6 +235,31 @@ export function useHostActions(
     }
   };
 
+  const handleUpdateHostPeerId = async (newHostPeerId: string) => {
+    if (!user || !roomData) return;
+    setIsProcessingRequest(true);
+    try {
+      const response = await fetch("/api/updateHostPeerId", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          hostId: user.id,
+          roomId: roomData.roomId,
+          newHostPeerId: newHostPeerId,
+        }),
+      });
+    } catch (error) {
+      console.error("Error updating host peer id:", error);
+    } finally {
+      setIsProcessingRequest(false);
+    }
+  }
+
+
+
   return {
     handleMakeRoomReady,
     handleEndStream,
@@ -242,5 +267,6 @@ export function useHostActions(
     handleDenyRequest,
     handleRevokeControl,
     handleUpdatePassword,
+    handleUpdateHostPeerId,
   };
 }

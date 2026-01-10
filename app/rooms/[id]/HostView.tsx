@@ -20,6 +20,7 @@ import { useUpdateFromClient } from "./useUpdateFromClient";
 import { useInviteLink } from "./useInviteLink";
 import { usePeer } from "@/app/hooks/usePeer";
 import { useIsVideoCallConnected } from "./useIsVideoCallConnected";
+import { useAutoApproveRequestWithPassword, useMakeRoomReadyOnLoad, useResetRoomWhenHostDisconnects, useUpdateHostPeerIdWhenItChanges } from "./HostView.hooks";
 
 export default function HostView({ roomData }: { roomData: RoomData }) {
   const { user, session } = useAuth();
@@ -35,42 +36,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
   // Initialize robot WebSocket connection
   const robotWS = useRobotWebSocket();
 
-  const sendJointValuesToRobot = useCallback(
-    (robotId: string, jointValues: number[]) => {
-      //console.log("jointValues", jointValues);
-      //console.log("robotWS.isConnected", robotWS.isConnected);
-      if (!robotWS.isConnected) {
-        return;
-      }
-      //console.log("Joint values for", robotId, ":", jointValues);
-      robotWS.sendHandData(robotId, [...jointValues]);
-    },
-    [robotWS.isConnected, robotWS.sendHandData]
-  );
 
-  const onGetLocalStream = useCallback(() => {
-    return camera.stream;
-  }, [camera.stream]);
-
-  //a use effect that looks at the user request for control, and if it has the room password,
-  //it auto approves the request
-  useEffect(() => {
-    if (
-      roomData.info?.requestingClientIds &&
-      Object.keys(roomData.info.requestingClientIds).length > 0
-    ) {
-      for (const clientId in roomData.info.requestingClientIds) {
-        const requestPw = roomData.info.requestingClientIds[clientId].pw;
-        const roomPw = roomData.roomPW;
-        console.log("room data changed", requestPw, roomPw);
-        if (
-          roomData.info.requestingClientIds[clientId].pw === roomData.roomPW
-        ) {
-          handleApproveRequest(clientId);
-        }
-      }
-    }
-  }, [roomData]);
 
   const onData = useCallback(
     (data: any) => {
@@ -92,13 +58,13 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
           }
         }
         for (const key in currentState.current) {
-          sendJointValuesToRobot(key, currentState.current[key].joints);
+          robotWS.sendJointValuesToRobot(key, currentState.current[key].joints);
         }
       } catch (error) {
         console.error("Error parsing data", error, data);
       }
     },
-    [isTestControlEnabled, sendJointValuesToRobot]
+    [isTestControlEnabled, robotWS.sendJointValuesToRobot]
   );
 
   const currentState = useRef<Record<string, DataFrame>>({
@@ -149,6 +115,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     handleDenyRequest,
     handleRevokeControl,
     handleUpdatePassword: handleUpdatePasswordAction,
+    handleUpdateHostPeerId,
   } = useHostActions(
     user,
     session,
@@ -160,19 +127,10 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     setIsProcessingRequest
   );
 
-  //if the room's hostPeerId does not match the peer's id, reset the room's ready state
-  const lastHostPeerId = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    const currentHostPeerId = peer.peer?.id;
-
-    if (currentHostPeerId !== lastHostPeerId.current) {
-      lastHostPeerId.current = currentHostPeerId;
-      if (!!roomData.hostPeerId && roomData.hostPeerId !== peer.peer?.id) {
-        console.log("ending stream!");
-        handleEndStream();
-      }
-    }
-  }, [roomData.hostPeerId, peer.peer?.id, handleEndStream]);
+  useAutoApproveRequestWithPassword(roomData, handleApproveRequest);
+  //useResetRoomWhenHostDisconnects(roomData, peer, handleEndStream);
+  useUpdateHostPeerIdWhenItChanges(roomData, peer, handleUpdateHostPeerId);
+  useMakeRoomReadyOnLoad(roomData, handleMakeRoomReady);
 
   const isRoomReady = roomData.hostPeerId !== null;
 
@@ -208,7 +166,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
               controlMode={
                 !isTestControlEnabled ? "DirectJoints" : "WidgetGoal"
               }
-              onJointValuesUpdate={sendJointValuesToRobot}
+              onJointValuesUpdate={robotWS.sendJointValuesToRobot}
             />
           </div>
         </div>
@@ -303,7 +261,19 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
               <h3 className="text-base sm:text-lg font-semibold text-foreground">
                 Host Camera Feed
               </h3>
-              <div className="flex items-center space-x-2">
+              {/* room ready indicator */}
+              {isRoomReady ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <span className="text-sm">Room Ready</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                  <span className="text-sm">Room Not Ready</span>
+                </div>
+              )}
+              {/* <div className="flex items-center space-x-2">
                 {!isRoomReady ? (
                   <button
                     onClick={handleMakeRoomReady}
@@ -321,7 +291,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                     {isEndingStream ? "Ending..." : "End"}
                   </button>
                 )}
-              </div>
+              </div> */}
             </div>
 
             {/* Camera Device Selection */}
@@ -343,8 +313,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                   {camera.isLoading
                     ? "Detecting cameras..."
                     : camera.devices.length === 0
-                    ? "No cameras available"
-                    : "Choose a camera..."}
+                      ? "No cameras available"
+                      : "Choose a camera..."}
                 </option>
                 {camera.devices.map((device) => (
                   <option key={device.deviceId} value={device.deviceId}>
@@ -413,9 +383,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 <span className="text-sm text-foreground/70">Room Status</span>
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${
-                      isRoomReady ? "bg-green-500" : "bg-yellow-500"
-                    }`}
+                    className={`w-2 h-2 rounded-full ${isRoomReady ? "bg-green-500" : "bg-yellow-500"
+                      }`}
                   ></div>
                   <span className="text-sm">
                     {isRoomReady ? "Ready for Control" : "Not Ready"}
@@ -427,9 +396,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 <span className="text-sm text-foreground/70">PeerJS</span>
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${
-                      peer.isConnected ? "bg-green-500" : "bg-red-500"
-                    }`}
+                    className={`w-2 h-2 rounded-full ${peer.isConnected ? "bg-green-500" : "bg-red-500"
+                      }`}
                   ></div>
                   <span className="text-sm">
                     {peer.isConnected ? "Connected" : "Disconnected"}
@@ -441,9 +409,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 <span className="text-sm text-foreground/70">Camera</span>
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${
-                      camera.stream ? "bg-green-500" : "bg-gray-400"
-                    }`}
+                    className={`w-2 h-2 rounded-full ${camera.stream ? "bg-green-500" : "bg-gray-400"
+                      }`}
                   ></div>
                   <span className="text-sm">
                     {camera.stream ? "Active" : "Inactive"}
@@ -455,9 +422,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 <span className="text-sm text-foreground/70">Video Calls</span>
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${
-                      videoCallConnected ? "bg-green-500" : "bg-gray-400"
-                    }`}
+                    className={`w-2 h-2 rounded-full ${videoCallConnected ? "bg-green-500" : "bg-gray-400"
+                      }`}
                   ></div>
                   <span className="text-sm">
                     {videoCallConnected ? "Active" : "Inactive"}
@@ -469,20 +435,19 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 <span className="text-sm text-foreground/70">Robot Server</span>
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${
-                      robotWS.isConnected
-                        ? "bg-green-500"
-                        : robotWS.isConnecting
+                    className={`w-2 h-2 rounded-full ${robotWS.isConnected
+                      ? "bg-green-500"
+                      : robotWS.isConnecting
                         ? "bg-yellow-500"
                         : "bg-red-500"
-                    }`}
+                      }`}
                   ></div>
                   <span className="text-sm">
                     {robotWS.isConnected
                       ? "Connected"
                       : robotWS.isConnecting
-                      ? "Connecting..."
-                      : "Disconnected"}
+                        ? "Connecting..."
+                        : "Disconnected"}
                   </span>
                 </div>
               </div>
@@ -547,11 +512,10 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
               </h3>
               <button
                 onClick={() => setIsTestControlEnabled(!isTestControlEnabled)}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  isTestControlEnabled
-                    ? "bg-orange-600 text-white hover:bg-orange-700"
-                    : "bg-gray-600 text-white hover:bg-gray-700"
-                }`}
+                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${isTestControlEnabled
+                  ? "bg-orange-600 text-white hover:bg-orange-700"
+                  : "bg-gray-600 text-white hover:bg-gray-700"
+                  }`}
               >
                 {isTestControlEnabled ? "Disable" : "Enable"}
               </button>
