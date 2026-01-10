@@ -27,6 +27,7 @@ export default function ClientViewXR({
         if (!remoteStream) return null;
         const video = document.createElement('video');
         video.srcObject = remoteStream;
+        video.autoplay = true;
 
         return video;
     }, [remoteStream]);
@@ -38,10 +39,26 @@ export default function ClientViewXR({
     }
 
     return (
-        <div>
-            <h1>XR Page</h1>
-            <button onClick={onExitXR}>Exit XR</button>
-            <Canvas style={{ position: 'absolute', inset: 0, touchAction: 'none' }}>
+        <div style={{ position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh' }}>
+            <button
+                onClick={onExitXR}
+                style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    left: '1rem',
+                    zIndex: 10,
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontSize: '1rem'
+                }}
+            >
+                ← Back
+            </button>
+            <Canvas style={{ position: 'absolute', inset: 0, touchAction: 'none', zIndex: 1 }}>
                 <XR store={store}>
                     {video && <XRLayer position={[0, 1.5, -0.5]} onClick={() => video?.play()} scale={0.5} src={video} />}
                     <ambientLight intensity={0.5} />
