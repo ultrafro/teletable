@@ -37,6 +37,16 @@ export function usePeer(
       },
     });
 
+    // const newPeer = new Peer({
+    //   debug: 1,
+    //   host: "localhost",
+    //   port: 9000,
+    //   path: '/',
+    //   // config: {
+    //   //   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    //   // },
+    // });
+
     let newPeerToReturn: Peer | null = null;
 
     let isCreatingPeer = true;
@@ -65,7 +75,12 @@ export function usePeer(
     return newPeerToReturn;
   }, []);
 
+  const firstLoadDone = useRef(false);
   useEffect(() => {
+    if (firstLoadDone.current) {
+      return;
+    }
+    firstLoadDone.current = true;
     console.log("resetting peer on first mount");
     resetPeer().catch(console.error);
   }, [resetPeer]);

@@ -284,8 +284,8 @@ export default function LandingPage() {
                 {authLoading
                   ? "Loading..."
                   : isSignUp
-                  ? "Sign Up"
-                  : "Sign In"}
+                    ? "Sign Up"
+                    : "Sign In"}
               </button>
 
               <div className="text-center">
@@ -303,8 +303,8 @@ export default function LandingPage() {
                 </button>
               </div>
             </form>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );
