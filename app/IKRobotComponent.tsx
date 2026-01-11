@@ -31,15 +31,22 @@ export function IKRobotComponent({
   const [IKRobotClass, setIKRobotClass] = useState<IKRobot | null>(null);
   const groupRef = useRef<Group>(null!);
 
+  const [groupReady, setGroupReady] = useState(false);
+
+
   const hasLoaded = useRef(false);
+
   useEffect(() => {
-    if (hasLoaded.current) {
+    if (hasLoaded.current || !groupReady) {
       return;
     }
     hasLoaded.current = true;
 
     const manager = new LoadingManager();
     const loader = new URDFLoader(manager);
+
+
+
     // loader.packages = {
     //   packageName: "./package/dir/", // The equivalent of a (list of) ROS package(s):// directory
     // };
@@ -67,7 +74,7 @@ export function IKRobotComponent({
         setIKRobotClass(newIKRobot);
       }
     );
-  }, [scene]);
+  }, [scene, groupReady]);
 
   useEffect(() => {
     if (IKRobotClass) {
@@ -76,6 +83,12 @@ export function IKRobotComponent({
   }, [IKRobotClass, onJointValuesUpdate]);
 
   useFrame(() => {
+    if (!groupReady && !!groupRef.current) {
+      setGroupReady(true);
+    }
+
+
+
     if (IKRobotClass) {
       //update base
       //IKRobotClass.setBaseTransform(basePostion);

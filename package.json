@@ -23,6 +23,7 @@
     "peerjs": "^1.5.5",
     "react": "19.2",
     "react-dom": "19.2",
+    "react-xr-ui": "^0.0.67",
     "three": "^0.182.0",
     "three-ik": "^0.1.0",
     "urdf-loader": "^0.12.6"

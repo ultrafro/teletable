@@ -1,14 +1,15 @@
 'use client'
-import { DataFrame, MobileGoal } from "@/app/teletable.model";
+import { DataFrame, LeftArmBasePosition, MobileGoal, RightArmBasePosition } from "@/app/teletable.model";
 import { useXRInputSourceStateContext, XR, XRLayer, XRStore } from "@react-three/xr";
 import { Handle, HandleTarget } from "@react-three/handle";
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { controllerPositions, ReportController } from "./ReportController";
 import { Clamper } from "./Clamper";
 import RobotVisualizer, { RobotVisualizerXR } from "@/app/RobotVisualizer";
 import { useFrame } from "@react-three/fiber";
 import { Vector3 } from "three";
+import { XrUi, Layer } from "react-xr-ui";
 
 // Import fiber separately (doesn't have WebXR dependencies)
 const Canvas = dynamic(
@@ -22,6 +23,48 @@ const TABLE_DEPTH = 0.6;
 const TABLE_HEIGHT = 0.05;
 const TABLE_LEG_HEIGHT = 0.7;
 const HANDLE_SIZE = 0.06;
+
+// Component to display left controller position on the table
+function ControllerPositionDisplay() {
+    const [pos, setPos] = useState({ x: 0, y: 0, z: 0 });
+
+    const lastUpdateTime = useRef(0);
+    useFrame(() => {
+        if (Date.now() - lastUpdateTime.current < 100) {
+            return;
+        }
+        lastUpdateTime.current = Date.now();
+        const leftPos = controllerPositions.leftController.position;
+        setPos({
+            x: Math.round(leftPos.x * 1000) / 1000,
+            y: Math.round(leftPos.y * 1000) / 1000,
+            z: Math.round(leftPos.z * 1000) / 1000,
+        });
+    });
+
+    return (
+        <group position={[0, TABLE_HEIGHT / 2 + 0.05, -TABLE_DEPTH / 2 + 0.05]}>
+            <XrUi>
+                {/* @ts-expect-error - react-xr-ui types incompatible with fiber v9 rc */}
+                <Layer
+                    width={0.35}
+                    height={0.4}
+                    backgroundColor="rgba(0, 0, 0, 0.8)"
+                    borderRadius={0.01}
+                    borderWidth={0.002}
+                    borderColor="#444444"
+                    padding={0.01}
+                    fontSize={0.1}
+                    color="white"
+                    textAlign="center"
+                    justifyContent="center"
+                    alignItems="center"
+                    textContent={`X: ${pos.x.toFixed(3)}  Y: ${pos.y.toFixed(3)}  Z: ${pos.z.toFixed(3)}`}
+                />
+            </XrUi>
+        </group>
+    );
+}
 
 function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null, onJointValuesUpdate: (robotId: string, joints: number[]) => void }) {
 
@@ -41,14 +84,16 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
         const leftController = controllerPositions.leftController;
         if (!mobileGoal.current.left) {
             mobileGoal.current.left = {
-                position: new Vector3(leftController.position.x, leftController.position.y, leftController.position.z),
+                position: new Vector3(),
                 roll: 0,
                 pitch: 0,
                 gripper: 0,
             };
         }
 
-        mobileGoal.current.left.position.copy(leftController.position);
+        //calculate left position relative to table + Left Robot Base Position
+        const leftPosition = new Vector3(leftController.position.x, leftController.position.y, leftController.position.z).add(LeftArmBasePosition);
+        mobileGoal.current.left.position.copy(leftPosition);
         mobileGoal.current.left.gripper = leftController.triggerValue;
 
 
@@ -56,13 +101,17 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
         const rightController = controllerPositions.rightController;
         if (!mobileGoal.current.right) {
             mobileGoal.current.right = {
-                position: new Vector3(rightController.position.x, rightController.position.y, rightController.position.z),
+                position: new Vector3(),
                 roll: 0,
                 pitch: 0,
                 gripper: 0,
             };
         }
-        mobileGoal.current.right.position.copy(rightController.position);
+
+        //calculate right position relative to table + Right Robot Base Position
+        const rightPosition = new Vector3(rightController.position.x, rightController.position.y, rightController.position.z).add(RightArmBasePosition);
+
+        mobileGoal.current.right.position.copy(rightPosition);
         mobileGoal.current.right.gripper = rightController.triggerValue;
 
     });
@@ -108,9 +157,13 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
 
                     <RobotVisualizerXR
                         currentState={currentState}
-                        controlMode="WidgetGoal"
+                        controlMode="ExternalGoal"
                         onJointValuesUpdate={onJointValuesUpdate}
+                        mobileGoal={mobileGoal.current}
                     />
+
+                    {/* Position display for left controller */}
+                    <ControllerPositionDisplay />
 
                 </HandleTarget>
             </group>

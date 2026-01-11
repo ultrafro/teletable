@@ -231,7 +231,7 @@ function RobotVisualizerCore({
         handId="left"
         basePosition={LeftArmBasePosition}
         controlMode={controlMode}
-        externalGoal={mobileGoal?.[focusedRobot ?? "right"]}
+        externalGoal={mobileGoal?.[focusedRobot ?? "left"]}
         onJointValuesUpdate={onJointValuesUpdate}
         hideControlSliders={hideControlSliders}
       />
