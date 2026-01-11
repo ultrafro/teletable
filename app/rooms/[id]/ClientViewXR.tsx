@@ -9,7 +9,7 @@ import { Clamper } from "./Clamper";
 import RobotVisualizer, { RobotVisualizerXR } from "@/app/RobotVisualizer";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { Vector3 } from "three";
+import { Euler, Quaternion, Vector3 } from "three";
 import { XrUi, Layer } from "react-xr-ui";
 
 // Import fiber separately (doesn't have WebXR dependencies)
@@ -22,7 +22,7 @@ const Canvas = dynamic(
 const TABLE_WIDTH = 0.8;
 const TABLE_DEPTH = 0.6;
 const TABLE_HEIGHT = .05;
-const TABLE_LEG_HEIGHT = 1.2;
+const TABLE_LEG_HEIGHT = 1;
 const HANDLE_SIZE = 0.06;
 
 const TABLE_OFFSET = new Vector3(0, TABLE_LEG_HEIGHT + TABLE_HEIGHT / 2, -0.8);
@@ -115,6 +115,9 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
             return;
         }
 
+        const tableWorldQuaternion = new Quaternion();
+        tableObj.getWorldQuaternion(tableWorldQuaternion);
+
         //copy controller positions to currentState
         const leftController = controllerPositions.leftController;
         if (!mobileGoal.current.left) {
@@ -134,6 +137,16 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
         mobileGoal.current.left.position.copy(leftPosition);
         mobileGoal.current.left.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
+        //find the left pitch. it's the relative "x" angle between the left controller and the table surface
+        const leftWorldQuaternion = leftController.quaternion.clone();
+        const leftLocalQuaternion = leftController.quaternion.clone();
+        const leftLocalEuler = new Euler().setFromQuaternion(leftLocalQuaternion);
+
+        const leftToTableQuaternion = leftWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
+        const leftToTableEuler = new Euler().setFromQuaternion(leftToTableQuaternion);
+        mobileGoal.current.left.pitch = -leftToTableEuler.x * 180 / Math.PI;
+        mobileGoal.current.left.roll = leftLocalEuler.z * 180 / Math.PI;
+
 
 
         const rightController = controllerPositions.rightController;
@@ -152,6 +165,14 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
 
         mobileGoal.current.right.position.copy(rightPosition);
         mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
+
+        const rightWorldQuaternion = rightController.quaternion.clone();
+        const rightLocalQuaternion = rightController.quaternion.clone();
+        const rightLocalEuler = new Euler().setFromQuaternion(rightLocalQuaternion);
+        const rightToTableQuaternion = rightWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
+        const rightToTableEuler = new Euler().setFromQuaternion(rightToTableQuaternion);
+        mobileGoal.current.right.pitch = -rightToTableEuler.x * 180 / Math.PI;
+        mobileGoal.current.right.roll = rightLocalEuler.z * 180 / Math.PI;
 
     });
 
