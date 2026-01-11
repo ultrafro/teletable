@@ -1,13 +1,13 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { urdfRobotToIKRoot } from "closed-chain-ik";
 import { RefObject, useEffect, useRef, useState } from "react";
-import { Vector3, Quaternion, LoadingManager, Scene } from "three";
+import { Vector3, Quaternion, LoadingManager, Scene, Group, Object3D } from "three";
 import URDFLoader from "urdf-loader";
 import { IKRobot } from "./IKRobot";
 import { DataFrame } from "./teletable.model";
 
 export function IKRobotComponent({
-  basePostion,
+  //basePostion,
   goalPosition,
   goalOtherValues,
   onJointValuesUpdate,
@@ -15,7 +15,7 @@ export function IKRobotComponent({
   currentState,
   handId,
 }: {
-  basePostion: Vector3;
+  //basePostion: Vector3;
   goalPosition: Vector3;
   goalOtherValues: {
     roll: number;
@@ -29,6 +29,7 @@ export function IKRobotComponent({
 }) {
   const { scene } = useThree();
   const [IKRobotClass, setIKRobotClass] = useState<IKRobot | null>(null);
+  const groupRef = useRef<Group>(null!);
 
   const hasLoaded = useRef(false);
   useEffect(() => {
@@ -46,7 +47,7 @@ export function IKRobotComponent({
       "/SO101/so101_new_calib.urdf", // The path to the URDF within the package OR absolute
       (robot) => {
         // The robot is loaded!
-        scene.add(robot);
+        groupRef.current.add(robot);
 
         // robot.traverse((c) => {
         //   if ((c as any).jointType === "floating") {
@@ -58,7 +59,7 @@ export function IKRobotComponent({
         // console.log(ikRobot);
 
         const newIKRobot = new IKRobot(
-          scene as unknown as Scene,
+          groupRef.current as unknown as Object3D,
           robot,
           ikRobot,
           onJointValuesUpdate
@@ -77,11 +78,12 @@ export function IKRobotComponent({
   useFrame(() => {
     if (IKRobotClass) {
       //update base
-      IKRobotClass.setBaseTransform(basePostion);
+      //IKRobotClass.setBaseTransform(basePostion);
 
       //update goal
       IKRobotClass.setGoalTransform(
-        basePostion.clone().add(goalPosition),
+        goalPosition,
+        // basePostion.clone().add(goalPosition),
         goalOtherValues.pitch,
         goalOtherValues.roll,
         goalOtherValues.gripper
@@ -105,5 +107,5 @@ export function IKRobotComponent({
       IKRobotClass.update();
     }
   });
-  return <></>;
+  return <group ref={groupRef} />;
 }

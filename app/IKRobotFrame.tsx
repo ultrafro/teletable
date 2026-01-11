@@ -49,7 +49,7 @@ export default function IKRobotFrame({
   return (
     <group position={basePosition}>
       <IKRobotComponent
-        basePostion={basePosition}
+        //basePostion={basePosition}
         goalPosition={handPosition.current}
         goalOtherValues={handOtherValues.current}
         onJointValuesUpdate={(jointValues) => {
@@ -84,7 +84,7 @@ export default function IKRobotFrame({
       {controlMode === "WidgetGoal" && (
         <ControlPointVisualizer
           position={handPosition.current}
-          basePosition={basePosition}
+          //basePosition={basePosition}
           otherValues={handOtherValues.current}
           handId={handId}
           offset={basePosition}

@@ -23,7 +23,7 @@ import ControlSliders from "./ControlSliders";
 
 export default function ControlPointVisualizer({
   position,
-  basePosition,
+  // basePosition,
   otherValues,
   handId,
   offset,
@@ -31,7 +31,7 @@ export default function ControlPointVisualizer({
   hideControlSliders,
 }: {
   position: Vector3;
-  basePosition: Vector3;
+  //basePosition: Vector3;
   otherValues: RobotOtherValues;
   handId: string;
   offset: Vector3;

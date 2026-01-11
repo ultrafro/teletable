@@ -15,7 +15,7 @@ export const DOF = {
 };
 
 export class IKRobot {
-  scene: Scene;
+  scene: Object3D;
   jointVisualizerGroup: Group;
   linkVisualizerGroup: Group;
   urdfRobot: URDFRobot;
@@ -45,7 +45,7 @@ export class IKRobot {
   onJointValuesUpdate?: (jointValues: number[]) => void;
 
   constructor(
-    scene: Scene,
+    scene: Object3D,
     urdfRobot: URDFRobot,
     ikRobot: Link | Joint,
     onJointValuesUpdate?: (jointValues: number[]) => void
