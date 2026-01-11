@@ -54,7 +54,7 @@ export function IKRobotComponent({
       "/SO101/so101_new_calib.urdf", // The path to the URDF within the package OR absolute
       (robot) => {
         // The robot is loaded!
-        groupRef.current.add(robot);
+        groupRef.current.add(robot as any);
 
         // robot.traverse((c) => {
         //   if ((c as any).jointType === "floating") {

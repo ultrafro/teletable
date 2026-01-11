@@ -3,7 +3,7 @@ import { Box } from "@react-three/drei";
 import { BothHands } from "./teletable.model";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LoadingManager, Scene } from "three";
+import { LoadingManager, Object3D, Scene } from "three";
 import URDFLoader from "urdf-loader";
 import { urdfRobotToIKRoot } from "closed-chain-ik";
 
@@ -92,7 +92,7 @@ export default function IKVisualizer({
       "/SO101/so101_new_calib.urdf", // The path to the URDF within the package OR absolute
       (robot) => {
         // The robot is loaded!
-        scene.add(robot);
+        scene.add(robot as any);
 
         // robot.traverse((c) => {
         //   if ((c as any).jointType === "floating") {
@@ -104,7 +104,7 @@ export default function IKVisualizer({
         console.log(ikRobot);
 
         const newIKRobot = new IKRobot(
-          scene as unknown as Scene,
+          scene as unknown as Object3D,
           robot,
           ikRobot
         );

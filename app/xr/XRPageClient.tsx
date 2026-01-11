@@ -66,7 +66,7 @@ export function XrPageClient() {
         <Canvas style={{ position: 'absolute', inset: 0, touchAction: 'none' }}>
             <XR store={store}>
                 <ambientLight intensity={0.5} />
-                <mesh pointerEventsType={{ deny: 'grab' }} onClick={() => setRed(!red)} position={[0, 1, -1]}>
+                <mesh onClick={() => setRed(!red)} position={[0, 1, -1]}>
                     <boxGeometry />
                     <meshBasicMaterial color={red ? 'red' : 'blue'} />
                 </mesh>
