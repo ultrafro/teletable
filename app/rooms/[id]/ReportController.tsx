@@ -36,8 +36,6 @@ export function ReportController({
 
     const meshRef = useRef<Mesh>(null!);
 
-    const tempScale = useRef(new Vector3(1, 1, 1));
-
     useEffect(() => {
         const valid = !!inputState?.inputSource?.targetRaySpace;
         const thing = controllerPositions[identifier];
@@ -57,9 +55,6 @@ export function ReportController({
             return;
         }
 
-        //get global position and quaternion of mesh ref
-        meshRef.current.updateWorldMatrix(true, true);
-
         const thing = controllerPositions[identifier];
 
         const mesh = meshRef.current as unknown as Object3D;
@@ -68,11 +63,9 @@ export function ReportController({
             thing.object = mesh;
         }
 
-        mesh.matrixWorld.decompose(
-            thing.position,
-            thing.quaternion,
-            tempScale.current
-        );
+        // Use getWorldPosition/getWorldQuaternion for proper XRSpace coordinate extraction
+        mesh.getWorldPosition(thing.position);
+        mesh.getWorldQuaternion(thing.quaternion);
 
         const triggerValue = inputState?.gamepad?.['xr-standard-trigger']?.button ?? 0;
         thing.triggerValue = triggerValue;
@@ -89,7 +82,7 @@ export function ReportController({
                     {children}
                 </ReportControllerContext.Provider>
                 <mesh ref={meshRef}>
-                    <boxGeometry args={[0.0001, 0.0001, 0.0001]} />
+                    <boxGeometry args={[0.05, 0.05, 0.05]} />
                     <meshBasicMaterial color={"blue"} />
                 </mesh>
             </XRSpace>

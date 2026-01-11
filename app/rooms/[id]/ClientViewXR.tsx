@@ -8,6 +8,7 @@ import { controllerPositions, ReportController } from "./ReportController";
 import { Clamper } from "./Clamper";
 import RobotVisualizer, { RobotVisualizerXR } from "@/app/RobotVisualizer";
 import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
 import { Vector3 } from "three";
 import { XrUi, Layer } from "react-xr-ui";
 
@@ -20,9 +21,36 @@ const Canvas = dynamic(
 // Table dimensions
 const TABLE_WIDTH = 0.8;
 const TABLE_DEPTH = 0.6;
-const TABLE_HEIGHT = 0.05;
-const TABLE_LEG_HEIGHT = 0.7;
+const TABLE_HEIGHT = .05;
+const TABLE_LEG_HEIGHT = 1.2;
 const HANDLE_SIZE = 0.06;
+
+const TABLE_OFFSET = new Vector3(0, TABLE_LEG_HEIGHT + TABLE_HEIGHT / 2, -0.8);
+
+// Debug component that shows a green cube at left controller position
+function DebugLeftControllerCube({ targetRef }: { targetRef: React.RefObject<THREE.Object3D> }) {
+    const meshRef = useRef<THREE.Mesh>(null);
+
+    useFrame(() => {
+        if (meshRef.current) {
+            const targetObj = targetRef.current;
+            if (!targetObj) {
+                return;
+            }
+            targetObj.updateWorldMatrix(true, true);
+            const targetPosition = new Vector3();
+            targetObj.getWorldPosition(targetPosition);
+            meshRef.current.position.copy(targetPosition);
+        }
+    });
+
+    return (
+        <mesh ref={meshRef}>
+            <boxGeometry args={[0.05, 0.05, 0.05]} />
+            <meshStandardMaterial color="green" />
+        </mesh>
+    );
+}
 
 // Component to display left controller position on the table
 function ControllerPositionDisplay() {
@@ -78,8 +106,15 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
 
     const currentState = useRef<Record<string, DataFrame>>({});
     const mobileGoal = useRef<MobileGoal>({});
-
+    const tableRef = useRef<THREE.Object3D>(null!);
     useFrame(() => {
+
+        //get global table position
+        const tableObj = tableRef.current;
+        if (!tableObj) {
+            return;
+        }
+
         //copy controller positions to currentState
         const leftController = controllerPositions.leftController;
         if (!mobileGoal.current.left) {
@@ -91,10 +126,13 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
             };
         }
 
-        //calculate left position relative to table + Left Robot Base Position
-        const leftPosition = new Vector3(leftController.position.x, leftController.position.y, leftController.position.z).add(LeftArmBasePosition);
+        const minGripperAngle = -45;
+        const maxGripperAngle = 45;
+
+        const leftInTableSpace = tableObj.worldToLocal(leftController.position.clone());
+        const leftPosition = leftInTableSpace.sub(LeftArmBasePosition);
         mobileGoal.current.left.position.copy(leftPosition);
-        mobileGoal.current.left.gripper = leftController.triggerValue;
+        mobileGoal.current.left.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
 
 
@@ -109,10 +147,11 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
         }
 
         //calculate right position relative to table + Right Robot Base Position
-        const rightPosition = new Vector3(rightController.position.x, rightController.position.y, rightController.position.z).add(RightArmBasePosition);
+        const rightInTableSpace = tableObj.worldToLocal(rightController.position.clone());
+        const rightPosition = rightInTableSpace.sub(RightArmBasePosition);
 
         mobileGoal.current.right.position.copy(rightPosition);
-        mobileGoal.current.right.gripper = rightController.triggerValue;
+        mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
     });
 
@@ -125,7 +164,7 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
             <ReportController identifier="leftController" >
                 <Clamper />
             </ReportController>
-            <group position={[0, TABLE_LEG_HEIGHT + TABLE_HEIGHT / 2, -0.8]}>
+            <group position={TABLE_OFFSET}>
                 <HandleTarget>
                     {/* Table surface */}
                     <mesh position={[0, 0, 0]}>
@@ -155,18 +194,29 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
                         />
                     )}
 
-                    <RobotVisualizerXR
-                        currentState={currentState}
-                        controlMode="ExternalGoal"
-                        onJointValuesUpdate={onJointValuesUpdate}
-                        mobileGoal={mobileGoal.current}
-                    />
+
+                    <group position={[0, 0, TABLE_DEPTH / 2 + 0.05]}>
+                        <group ref={tableRef} />
+                        <RobotVisualizerXR
+                            currentState={currentState}
+                            controlMode="ExternalGoal"
+                            onJointValuesUpdate={onJointValuesUpdate}
+                            mobileGoal={mobileGoal.current}
+                        />
+                    </group>
 
                     {/* Position display for left controller */}
                     <ControllerPositionDisplay />
 
                 </HandleTarget>
+
+
+
             </group>
+
+            {/* Debug cube at left controller position */}
+            <DebugLeftControllerCube targetRef={tableRef} />
+
         </>
     );
 }
