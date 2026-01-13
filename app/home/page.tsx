@@ -239,29 +239,27 @@ export default function HomePage() {
           {!roomsLoading && rooms.length > 0 && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {rooms.map((room) => (
-                <Link
+                <div
                   key={room.roomId}
-                  href={`/host/${room.roomId}`}
-                  className="border border-foreground/10 rounded-lg p-4 hover:shadow-lg hover:border-blue-500 transition-all bg-background"
+                  className="border border-foreground/10 rounded-lg p-4 bg-background"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="text-lg font-semibold truncate">
                       {room.roomId}
                     </h3>
                     <span
-                      className={`ml-2 px-2 py-1 text-xs rounded-full whitespace-nowrap ${
-                        room.hasActiveControl
+                      className={`ml-2 px-2 py-1 text-xs rounded-full whitespace-nowrap ${room.hasActiveControl
                           ? "bg-yellow-100 text-yellow-800"
                           : room.hostPeerId
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
+                            ? "bg-green-100 text-green-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
                     >
                       {room.hasActiveControl
                         ? "Active Control"
                         : room.hostPeerId
-                        ? "Ready"
-                        : "Not Ready"}
+                          ? "Ready"
+                          : "Not Ready"}
                     </span>
                   </div>
 
@@ -297,10 +295,21 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-foreground/10">
-                    <p className="text-xs text-blue-600">Click to open →</p>
+                  <div className="mt-4 pt-3 border-t border-foreground/10 flex gap-2">
+                    <Link
+                      href={`/host/${room.roomId}`}
+                      className="flex-1 px-3 py-2 text-sm text-center bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Open Host View
+                    </Link>
+                    <Link
+                      href={`/room/${room.roomId}`}
+                      className="flex-1 px-3 py-2 text-sm text-center bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                    >
+                      Open Control View
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
