@@ -21,12 +21,13 @@
 [x] reorganize client page so it is moslty control and camera feed in top right
 
 
-[ ] host page has direct link button
-[ ] home page has direct client view links
+[x] host page has direct link button
+[x] home page has direct client view links
 [ ] connectivity in deployed version
 [ ] bounding box on tracking
 [ ] clean up bits and bops cubes and spheres
 [ ] make ik not break as often
+[ ] fix second arm tracking
 
 
 
