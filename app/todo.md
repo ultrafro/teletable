@@ -15,10 +15,27 @@
 [x] add wrist control
 [x] add gripper control
 
-[ ] add remote control capacity to host view page
-[ ] reorganize host view page so it is mostly control, and camera feed in top right
-[ ] make client page work with new direct control
-[ ] reorganize client page so it is moslty control and camera feed in top right
+[x] add remote control capacity to host view page
+[x] reorganize host view page so it is mostly control, and camera feed in top right
+[x] make client page work with new direct control
+[x] reorganize client page so it is moslty control and camera feed in top right
+
+
+[ ] host page has direct link button
+[ ] home page has direct client view links
+[ ] connectivity in deployed version
+[ ] bounding box on tracking
+[ ] clean up bits and bops cubes and spheres
+[ ] make ik not break as often
+
+
+
+
+
+
+
+
+
 
 Later (don't do this now):
 [ ] figure out webcam broadcasting on host

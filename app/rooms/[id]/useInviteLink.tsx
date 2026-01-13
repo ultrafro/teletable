@@ -3,21 +3,23 @@ import { useState, useCallback } from "react";
 export function useInviteLink(roomId?: string) {
   const [linkCopied, setLinkCopied] = useState(false);
 
+  const getInviteLink = useCallback(() => {
+    if (roomId) {
+      const baseUrl = window.location.origin;
+      return `${baseUrl}/room/${roomId}`;
+    }
+    // Fallback: try to extract roomId from current URL
+    const urlMatch = window.location.pathname.match(/\/(host|room)\/(.+)$/);
+    if (urlMatch && urlMatch[2]) {
+      const baseUrl = window.location.origin;
+      return `${baseUrl}/room/${urlMatch[2]}`;
+    }
+    return window.location.href;
+  }, [roomId]);
+
   const handleCopyInviteLink = useCallback(async () => {
     try {
-      // Generate client URL - convert /host/roomId to /room/roomId
-      let clientUrl = window.location.href;
-      if (roomId) {
-        const baseUrl = window.location.origin;
-        clientUrl = `${baseUrl}/room/${roomId}`;
-      } else {
-        // Fallback: try to extract roomId from current URL
-        const urlMatch = window.location.pathname.match(/\/(host|room)\/(.+)$/);
-        if (urlMatch && urlMatch[2]) {
-          const baseUrl = window.location.origin;
-          clientUrl = `${baseUrl}/room/${urlMatch[2]}`;
-        }
-      }
+      const clientUrl = getInviteLink();
       
       await navigator.clipboard.writeText(clientUrl);
       setLinkCopied(true);
@@ -26,17 +28,7 @@ export function useInviteLink(roomId?: string) {
       console.error("Failed to copy link:", err);
       // Fallback for older browsers
       const textArea = document.createElement("textarea");
-      let clientUrl = window.location.href;
-      if (roomId) {
-        const baseUrl = window.location.origin;
-        clientUrl = `${baseUrl}/room/${roomId}`;
-      } else {
-        const urlMatch = window.location.pathname.match(/\/(host|room)\/(.+)$/);
-        if (urlMatch && urlMatch[2]) {
-          const baseUrl = window.location.origin;
-          clientUrl = `${baseUrl}/room/${urlMatch[2]}`;
-        }
-      }
+      const clientUrl = getInviteLink();
       textArea.value = clientUrl;
       textArea.style.position = "fixed";
       textArea.style.opacity = "0";
@@ -51,10 +43,16 @@ export function useInviteLink(roomId?: string) {
       }
       document.body.removeChild(textArea);
     }
-  }, [roomId]);
+  }, [getInviteLink]);
+
+  const handleOpenInviteLink = useCallback(() => {
+    const clientUrl = getInviteLink();
+    window.open(clientUrl, "_blank");
+  }, [getInviteLink]);
 
   return {
     linkCopied,
     handleCopyInviteLink,
+    handleOpenInviteLink,
   };
 }
