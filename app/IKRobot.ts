@@ -206,7 +206,8 @@ export class IKRobot {
     this.lastPitchValue = pitch;
     this.lastGripperValue = gripper;
     this.lastWristValue = roll;
-    this.goal.setPosition(position.x, position.y, position.z);
+    const clampedPosition = this.clampPosition(position.x, position.y, position.z);
+    this.goal.setPosition(clampedPosition.x, clampedPosition.y, clampedPosition.z);
     // this.wristGoal.setTargetValue(DOF.EZ, roll);
     // this.pitchGoal.setTargetValue(DOF.EZ, pitch);
     // this.gripperGoal.setTargetValue(DOF.EZ, gripper);
@@ -215,10 +216,32 @@ export class IKRobot {
     // this.pitchJoint.setTargetValue(DOF.EZ, pitch);
     // this.gripperJoint.setTargetValue(DOF.EZ, gripper);
 
-    this.wristJoint.setDoFValue(DOF.EZ, (roll * Math.PI) / 180);
-    this.pitchJoint.setDoFValue(DOF.EZ, (pitch * Math.PI) / 180);
+    // Wrist and pitch are soft constraints (lerped in update), gripper remains hard
     this.gripperJoint.setDoFValue(DOF.EZ, (gripper * Math.PI) / 180);
     // this.endLink.setTargetValue(DOF.EZ, gripper);
+  }
+
+
+  clampPosition(x: number, y: number, z: number) {
+    const minAngleDegrees = -70;
+    const maxAngleDegrees = 70;
+    const minRadius = 0.1;
+    const maxRadius = 0.4;
+    const minHeight = 0.0;
+    const maxHeight = 1;
+
+    const minAngle = minAngleDegrees * Math.PI / 180;
+    const maxAngle = maxAngleDegrees * Math.PI / 180;
+
+    const inputAngle = Math.atan2(x, -z);
+    const inputHeight = y;
+    const inputRadius = Math.sqrt(x * x + z * z);
+
+    const clampedAngle = MathUtils.clamp(inputAngle, minAngle, maxAngle);
+    const clampedHeight = MathUtils.clamp(inputHeight, minHeight, maxHeight);
+    const clampedRadius = MathUtils.clamp(inputRadius, minRadius, maxRadius);
+
+    return new Vector3(clampedRadius * Math.sin(clampedAngle), clampedHeight, -clampedRadius * Math.cos(clampedAngle));
   }
 
   setBaseTransform(position: Vector3) {
@@ -267,15 +290,13 @@ export class IKRobot {
         DOF.EZ,
         (this.lastGripperValue * Math.PI) / 180
       );
-      this.wristJoint.setDoFValue(
-        DOF.EZ,
-        (this.lastWristValue * Math.PI) / 180
-      );
-      // this.wristJoint.setDoFValue(DOF.EZ, (this.directValues[4] * Math.PI) / 180);
-      this.pitchJoint.setDoFValue(
-        DOF.EZ,
-        (this.lastPitchValue * Math.PI) / 180
-      );
+      // Soft constraints: lerp wrist and pitch toward target (allows IK to deviate)
+      const wristTarget = (this.lastWristValue * Math.PI) / 180;
+      const pitchTarget = (this.lastPitchValue * Math.PI) / 180;
+      const currentWrist = this.wristJoint.getDoFValue(DOF.EZ) as number;
+      const currentPitch = this.pitchJoint.getDoFValue(DOF.EZ) as number;
+      this.wristJoint.setDoFValue(DOF.EZ, MathUtils.lerp(currentWrist, wristTarget, 0.5));
+      this.pitchJoint.setDoFValue(DOF.EZ, MathUtils.lerp(currentPitch, pitchTarget, 0.5));
     }
 
     this.ikRobot.updateMatrixWorld();
