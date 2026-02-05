@@ -70,6 +70,7 @@ export default function IKRobotFrame({
   controlMode,
   externalGoal,
   hideControlSliders,
+  hideExternalGoal,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   handId: string;
@@ -78,6 +79,7 @@ export default function IKRobotFrame({
   controlMode: RobotVisualizerControlMode;
   externalGoal?: ExternalGoal;
   hideControlSliders?: boolean;
+  hideExternalGoal?: boolean;
 }) {
   const handPosition = useRef(new Vector3(0, 0, -0.3));
   const handQuaternion = useRef(new Quaternion(0, 0, 0, 1));
@@ -141,7 +143,7 @@ export default function IKRobotFrame({
         />
       )}
 
-      {controlMode === "ExternalGoal" && externalGoal && (
+      {controlMode === "ExternalGoal" && externalGoal && !hideExternalGoal && (
         <>
           <ExternalGoalVisualizer goal={externalGoal} />
         </>

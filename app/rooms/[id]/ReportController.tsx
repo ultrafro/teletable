@@ -82,8 +82,8 @@ export function ReportController({
                     {children}
                 </ReportControllerContext.Provider>
                 <mesh ref={meshRef}>
-                    <boxGeometry args={[0.05, 0.05, 0.05]} />
-                    <meshBasicMaterial color={"blue"} />
+                    {/* <boxGeometry args={[0.05, 0.05, 0.05]} />
+                    <meshBasicMaterial color={"blue"} /> */}
                 </mesh>
             </XRSpace>
         </>

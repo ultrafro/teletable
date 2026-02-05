@@ -180,10 +180,10 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
     return (
         <>
             <ReportController identifier="rightController" >
-                <Clamper />
+                {/* <Clamper /> */}
             </ReportController>
             <ReportController identifier="leftController" >
-                <Clamper />
+                {/* <Clamper /> */}
             </ReportController>
             <group position={TABLE_OFFSET}>
                 <HandleTarget>
@@ -227,7 +227,7 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
                     </group>
 
                     {/* Position display for left controller */}
-                    <ControllerPositionDisplay />
+                    {/* <ControllerPositionDisplay /> */}
 
                 </HandleTarget>
 
@@ -236,7 +236,7 @@ function Table({ video, onJointValuesUpdate }: { video: HTMLVideoElement | null,
             </group>
 
             {/* Debug cube at left controller position */}
-            <DebugLeftControllerCube targetRef={tableRef} />
+            {/* <DebugLeftControllerCube targetRef={tableRef} /> */}
 
         </>
     );

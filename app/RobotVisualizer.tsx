@@ -164,6 +164,7 @@ export function RobotVisualizerXR({
       hideGrid={true}
       hideCompass={true}
       hideControlSliders={true}
+      hideExternalGoal={true}
     />
   );
 }
@@ -178,6 +179,7 @@ function RobotVisualizerCore({
   hideGrid,
   hideCompass,
   hideControlSliders,
+  hideExternalGoal,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   controlMode: RobotVisualizerControlMode;
@@ -187,6 +189,7 @@ function RobotVisualizerCore({
   hideGrid?: boolean;
   hideCompass?: boolean;
   hideControlSliders?: boolean;
+  hideExternalGoal?: boolean;
 }) {
   return (
     <>
@@ -234,6 +237,7 @@ function RobotVisualizerCore({
         externalGoal={mobileGoal?.[focusedRobot ?? "left"]}
         onJointValuesUpdate={onJointValuesUpdate}
         hideControlSliders={hideControlSliders}
+        hideExternalGoal={hideExternalGoal}
       />
 
       <IKRobotFrame
@@ -244,6 +248,7 @@ function RobotVisualizerCore({
         externalGoal={mobileGoal?.[focusedRobot ?? "right"]}
         onJointValuesUpdate={onJointValuesUpdate}
         hideControlSliders={hideControlSliders}
+        hideExternalGoal={hideExternalGoal}
       />
 
       <OrbitControlsWithTarget focusedRobot={focusedRobot} />
