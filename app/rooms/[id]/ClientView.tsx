@@ -79,10 +79,11 @@ export default function ClientView({
         // );
       }
 
+      // Update currentState first so subsequent calls have fresh data
+      currentState.current[robotId].joints = [...jointValues];
       const transmission: Record<string, DataFrame> = JSON.parse(
         JSON.stringify(currentState.current)
       );
-      transmission[robotId].joints = [...jointValues];
       onStateUpdate(transmission);
     },
     [onStateUpdate]
