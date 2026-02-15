@@ -23,7 +23,7 @@ import HandViewer from "@/app/HandViewer";
 import { useBroadcastHands } from "./useBroadcastHands";
 import { useBroadcastState } from "./useBroadcastState";
 import { usePeer } from "@/app/hooks/usePeer";
-import { useVideoCallConnectionClientside } from "./useVideoCallConnectionClientside";
+import { useMultiVideoCallConnectionClientside } from "./useMultiVideoCallConnectionClientside";
 import { useDataConnectionClientside } from "./useDataConnectionClientside";
 import { useIsMobile } from "./useIsMobile";
 import { ClientViewMobile } from "./ClientViewMobile";
@@ -56,7 +56,7 @@ export default function ClientView({
       type: "SO101",
     },
   });
-  const remoteStream = useVideoCallConnectionClientside(
+  const remoteStreams = useMultiVideoCallConnectionClientside(
     roomData.hostPeerId || "",
     peer
   );
@@ -148,7 +148,7 @@ export default function ClientView({
   if (isInXR) {
     return <XRPageClient
       store={store}
-      remoteStream={remoteStream}
+      remoteStreams={remoteStreams}
       onJointValuesUpdate={handleJointValuesUpdate}
       onExitXR={onExitXR}
     />;
@@ -162,7 +162,7 @@ export default function ClientView({
         handleJointValuesUpdate={handleJointValuesUpdate}
         roomPassword={roomPassword}
         setRoomPassword={setRoomPassword}
-        remoteStream={remoteStream}
+        remoteStreams={remoteStreams}
         handleRequestControl={handleRequestControl}
         isRequestingControl={isRequestingControl}
         requestStatus={requestStatus}
@@ -177,7 +177,7 @@ export default function ClientView({
         handleJointValuesUpdate={handleJointValuesUpdate}
         roomPassword={roomPassword}
         setRoomPassword={setRoomPassword}
-        remoteStream={remoteStream}
+        remoteStreams={remoteStreams}
         handleRequestControl={handleRequestControl}
         isRequestingControl={isRequestingControl}
         requestStatus={requestStatus}

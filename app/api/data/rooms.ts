@@ -182,6 +182,26 @@ export class RoomManager {
     }
   }
 
+  static async updateBroadcastCameras(
+    roomId: string,
+    cameras: { cameraId: string; label: string; enabled: boolean }[]
+  ): Promise<Room | null> {
+    try {
+      const room = await this.getRoom(roomId);
+      if (!room) return null;
+
+      // Update the broadcast cameras in room info
+      room.info.broadcastCameras = cameras;
+
+      // Update the room in the database
+      const updatedRoom = await this.createOrUpdateRoom(roomId, room);
+      return updatedRoom;
+    } catch (error) {
+      console.error("Error in updateBroadcastCameras:", error);
+      throw error;
+    }
+  }
+
   static async getAllRooms(): Promise<Room[]> {
     try {
       const { data, error } = await supabaseAdmin
