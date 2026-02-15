@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useCamera } from "@/app/hooks/useCamera";
+import { useMultiCamera, CameraStream } from "@/app/hooks/useMultiCamera";
 import { RoomData } from "./roomUI.model";
 import { UsePeerJSResult } from "@/app/hooks/usePeerJS";
 import { useAuth } from "@/app/lib/auth";
@@ -24,9 +24,11 @@ import { useAutoApproveRequestWithPassword, useMakeRoomReadyOnLoad, useResetRoom
 
 export default function HostView({ roomData }: { roomData: RoomData }) {
   const { user, session } = useAuth();
-  const camera = useCamera();
+  const multiCamera = useMultiCamera();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  // Create video refs for camera previews
+  const videoRefs = useRef<Map<string, HTMLVideoElement | null>>(new Map());
+  const lastBroadcastTrackIdsRef = useRef<Map<string, string | null>>(new Map());
   const [isInitializingStream, setIsInitializingStream] = useState(false);
   const [isEndingStream, setIsEndingStream] = useState(false);
   const [isProcessingRequest, setIsProcessingRequest] = useState(false);
@@ -78,35 +80,89 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     },
   });
 
-  const peer = usePeer(onData, camera.fakeVideoStream);
+  const peer = usePeer(onData);
 
   const videoCallConnected = useIsVideoCallConnected(peer);
 
   // Initialize camera devices when component mounts
   useEffect(() => {
     // Only initialize if devices haven't been loaded yet
-    if (camera.devices.length === 0 && !camera.isLoading) {
-      camera.initializeCamera().catch((err) => {
+    if (multiCamera.devices.length === 0 && !multiCamera.isLoading) {
+      multiCamera.initializeCameras().catch((err) => {
         console.error("Failed to initialize camera devices:", err);
       });
     }
   }, []);
 
-  // Display camera stream in video element when available
+  // Sync camera streams with peer when streams change
   useEffect(() => {
-    if (videoRef.current) {
-      if (camera.stream) {
-        videoRef.current.srcObject = camera.stream;
+    if (!peer.peer) return;
+
+    // Get current broadcast camera IDs from peer
+    const currentBroadcastIds = new Set(peer.getBroadcastCameraIds());
+
+    // Get enabled streams from multiCamera
+    const enabledStreams = multiCamera.getEnabledStreams();
+    const enabledStreamIds = new Set(enabledStreams.map(s => s.deviceId));
+    console.log(
+      "[HostCamSync] state",
+      {
+        enabledStreamCount: enabledStreams.length,
+        broadcastCount: currentBroadcastIds.size,
+        enabledStreamIds: Array.from(enabledStreamIds),
+        broadcastIds: Array.from(currentBroadcastIds),
+      }
+    );
+
+    // Add new streams that are enabled but not yet broadcasting
+    for (const cameraStream of enabledStreams) {
+      if (!currentBroadcastIds.has(cameraStream.deviceId)) {
+        console.log("[HostCamSync] add", cameraStream.deviceId, cameraStream.label);
+        peer.addCameraStream(cameraStream.deviceId, cameraStream.stream, cameraStream.label);
+        lastBroadcastTrackIdsRef.current.set(
+          cameraStream.deviceId,
+          cameraStream.stream.getVideoTracks()[0]?.id || null
+        );
       } else {
-        videoRef.current.srcObject = null;
+        // Only switch tracks when the underlying video track changes. Replacing every render
+        // causes visible flicker on clients.
+        const nextTrackId = cameraStream.stream.getVideoTracks()[0]?.id || null;
+        const lastTrackId = lastBroadcastTrackIdsRef.current.get(cameraStream.deviceId) || null;
+        if (nextTrackId && nextTrackId !== lastTrackId) {
+          console.log("[HostCamSync] switch", cameraStream.deviceId, cameraStream.label);
+          peer.switchStream(cameraStream.deviceId, cameraStream.stream);
+          lastBroadcastTrackIdsRef.current.set(cameraStream.deviceId, nextTrackId);
+        }
       }
     }
 
-    //tell the peer to switch to the new stream
-    if (peer.peer) {
-      peer.switchStream(camera.stream || camera.fakeVideoStream);
+    // Remove streams that are no longer enabled
+    for (const cameraId of currentBroadcastIds) {
+      if (!enabledStreamIds.has(cameraId)) {
+        console.log("[HostCamSync] remove", cameraId);
+        peer.removeCameraStream(cameraId);
+        lastBroadcastTrackIdsRef.current.delete(cameraId);
+      }
     }
-  }, [camera.stream, camera.fakeVideoStream, peer]);
+  }, [multiCamera.streams, multiCamera.enabledCameraIds, peer.peer]);
+
+  // Update video preview elements when streams change
+  useEffect(() => {
+    multiCamera.streams.forEach((cameraStream, deviceId) => {
+      const videoEl = videoRefs.current.get(deviceId);
+      if (videoEl && videoEl.srcObject !== cameraStream.stream) {
+        videoEl.srcObject = cameraStream.stream;
+        void videoEl.play().catch(() => {
+          // Ignore autoplay rejections for muted inline previews.
+        });
+      }
+    });
+  }, [multiCamera.streams]);
+
+  // Create an adapter for useHostActions that expects UseCameraResult
+  const cameraAdapter = useMemo(() => ({
+    stopCamera: () => multiCamera.stopAllCameras(),
+  }), [multiCamera]);
 
   const {
     handleMakeRoomReady,
@@ -120,7 +176,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     user,
     session,
     roomData,
-    camera,
+    cameraAdapter as any,
     peer,
     setIsInitializingStream,
     setIsEndingStream,
@@ -277,11 +333,11 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
             </div>
           </div>
 
-          {/* Camera Feed Section */}
+          {/* Host Camera Feeds Section */}
           <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-3 sm:p-4 flex-shrink-0">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-foreground">
-                Host Camera Feed
+                Host Camera Feeds
               </h3>
               {/* room ready indicator */}
               {isRoomReady ? (
@@ -295,102 +351,137 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                   <span className="text-sm">Room Not Ready</span>
                 </div>
               )}
-              {/* <div className="flex items-center space-x-2">
-                {!isRoomReady ? (
-                  <button
-                    onClick={handleMakeRoomReady}
-                    disabled={isInitializingStream}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isInitializingStream ? "Initializing..." : "Start"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleEndStream}
-                    disabled={isEndingStream}
-                    className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isEndingStream ? "Ending..." : "End"}
-                  </button>
-                )}
-              </div> */}
             </div>
 
-            {/* Camera Device Selection */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-foreground/70 mb-2">
-                Camera Device:
-              </label>
-              <select
-                value={camera.selectedDeviceId || ""}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    camera.selectDevice(e.target.value);
-                  }
-                }}
-                disabled={camera.isLoading}
-                className="w-full px-3 py-2 bg-background border border-foreground/20 rounded-md text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">
-                  {camera.isLoading
-                    ? "Detecting cameras..."
-                    : camera.devices.length === 0
-                      ? "No cameras available"
-                      : "Choose a camera..."}
-                </option>
-                {camera.devices.map((device) => (
-                  <option key={device.deviceId} value={device.deviceId}>
-                    {device.label}
-                  </option>
-                ))}
-              </select>
-              {camera.isLoading && camera.devices.length === 0 && (
-                <p className="text-xs text-foreground/50 mt-1">
-                  Requesting camera access to detect available devices...
-                </p>
-              )}
-            </div>
+            {/* Loading state */}
+            {multiCamera.isLoading && multiCamera.devices.length === 0 && (
+              <p className="text-xs text-foreground/50 mb-3">
+                Requesting camera access to detect available devices...
+              </p>
+            )}
 
-            <div className="rounded-lg overflow-hidden border border-foreground/10 shadow-lg bg-background">
-              {camera.stream ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-auto"
-                />
-              ) : (
-                <div className="w-full aspect-video flex items-center justify-center bg-background">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-foreground/10 rounded-full flex items-center justify-center mb-2 mx-auto">
-                      <svg
-                        className="w-6 h-6 text-foreground/50"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-foreground/50 text-xs px-4">
-                      {isRoomReady
-                        ? "Camera preview will appear here"
-                        : 'Click "Start" to begin'}
-                    </p>
-                  </div>
+            {/* No cameras available */}
+            {!multiCamera.isLoading && multiCamera.devices.length === 0 && (
+              <div className="text-center py-4">
+                <div className="w-12 h-12 bg-foreground/10 rounded-full flex items-center justify-center mb-2 mx-auto">
+                  <svg
+                    className="w-6 h-6 text-foreground/50"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
                 </div>
-              )}
-            </div>
+                <p className="text-foreground/50 text-xs">No cameras available</p>
+              </div>
+            )}
 
-            {camera.error && (
+            {/* Camera List */}
+            {multiCamera.devices.length > 0 && (
+              <div className="space-y-3">
+                {multiCamera.devices.map((device) => {
+                  const isEnabled = multiCamera.enabledCameraIds.includes(device.deviceId);
+                  const cameraStream = multiCamera.streams.get(device.deviceId);
+                  const hasStream = !!cameraStream;
+
+                  return (
+                    <div
+                      key={device.deviceId}
+                      className="flex items-center gap-3 p-2 rounded-lg border border-foreground/10 bg-background"
+                    >
+                      {/* Checkbox */}
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isEnabled}
+                          onChange={async (e) => {
+                            const newEnabled = e.target.checked;
+                            multiCamera.toggleCameraEnabled(device.deviceId, newEnabled);
+
+                            if (newEnabled) {
+                              // Start the camera. Broadcast sync is handled by the
+                              // stream synchronization effect above.
+                              const stream = await multiCamera.startCamera(device.deviceId);
+                              if (!stream) {
+                                // Prevent indefinite "Starting..." when camera cannot be started.
+                                multiCamera.toggleCameraEnabled(device.deviceId, false);
+                              }
+                            } else {
+                              // Stop the camera. Broadcast removal is handled by
+                              // the stream synchronization effect above.
+                              multiCamera.stopCamera(device.deviceId);
+                            }
+                          }}
+                          className="w-4 h-4 text-blue-600 bg-background border-foreground/30 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+
+                      {/* Video Preview */}
+                      <div className="w-[100px] h-[75px] bg-foreground/5 rounded overflow-hidden flex-shrink-0 border border-foreground/10">
+                        {hasStream ? (
+                          <video
+                            ref={(el) => {
+                              if (!el) {
+                                videoRefs.current.delete(device.deviceId);
+                                return;
+                              }
+
+                              videoRefs.current.set(device.deviceId, el);
+                              if (cameraStream && el.srcObject !== cameraStream.stream) {
+                                el.srcObject = cameraStream.stream;
+                                void el.play().catch(() => {
+                                  // Ignore autoplay rejections for muted inline previews.
+                                });
+                              }
+                            }}
+                            autoPlay
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg
+                              className="w-6 h-6 text-foreground/30"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Camera Label */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">
+                          {device.label}
+                        </p>
+                        <p className="text-xs text-foreground/50">
+                          {isEnabled ? (hasStream ? "Broadcasting" : "Starting...") : "Not broadcasting"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {multiCamera.error && (
               <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded-lg text-red-700 text-xs">
-                <strong>Camera Error:</strong> {camera.error}
+                <strong>Camera Error:</strong> {multiCamera.error}
               </div>
             )}
           </div>
@@ -428,14 +519,16 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm text-foreground/70">Camera</span>
+                <span className="text-sm text-foreground/70">Cameras</span>
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${camera.stream ? "bg-green-500" : "bg-gray-400"
+                    className={`w-2 h-2 rounded-full ${multiCamera.streams.size > 0 ? "bg-green-500" : "bg-gray-400"
                       }`}
                   ></div>
                   <span className="text-sm">
-                    {camera.stream ? "Active" : "Inactive"}
+                    {multiCamera.streams.size > 0
+                      ? `${multiCamera.streams.size} Active`
+                      : "None Active"}
                   </span>
                 </div>
               </div>

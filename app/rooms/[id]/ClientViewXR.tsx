@@ -3,7 +3,7 @@ import { DataFrame, LeftArmBasePosition, MobileGoal, RightArmBasePosition } from
 import { useXRInputSourceStateContext, XR, XRLayer, XRStore } from "@react-three/xr";
 import { Handle, HandleTarget } from "@react-three/handle";
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { controllerPositions, ReportController } from "./ReportController";
 import { Clamper } from "./Clamper";
 import RobotVisualizer, { RobotVisualizerXR } from "@/app/RobotVisualizer";
@@ -11,6 +11,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Euler, Quaternion, Vector3 } from "three";
 import { XrUi, Layer } from "react-xr-ui";
+import { RemoteCameraStream } from "./useMultiVideoCallConnectionClientside";
 
 // Import fiber separately (doesn't have WebXR dependencies)
 const Canvas = dynamic(
@@ -107,7 +108,133 @@ function StartTrackingButton({ onStart, trackingEnabled }: { onStart: () => void
     );
 }
 
-function Table({ video, onJointValuesUpdate, trackingEnabled, onStartTracking }: { video: HTMLVideoElement | null, onJointValuesUpdate: (robotId: string, joints: number[]) => void, trackingEnabled: boolean, onStartTracking: () => void }) {
+// Draggable video panels component for multiple camera streams
+function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraStream[] }) {
+    const videoByCameraIdRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+
+    const videoEntries = useMemo(() => {
+        return remoteStreams.map((streamInfo) => {
+            let video = videoByCameraIdRef.current.get(streamInfo.cameraId);
+            if (!video) {
+                video = document.createElement("video");
+                video.autoplay = true;
+                video.playsInline = true;
+                video.muted = true;
+                video.setAttribute("playsinline", "true");
+                videoByCameraIdRef.current.set(streamInfo.cameraId, video);
+                console.log("[XRVideo] created video element", streamInfo.cameraId, streamInfo.label);
+            }
+
+            if (video.srcObject !== streamInfo.stream) {
+                video.srcObject = streamInfo.stream;
+                const trackStates = streamInfo.stream
+                    .getVideoTracks()
+                    .map((t) => ({ id: t.id, enabled: t.enabled, muted: t.muted, readyState: t.readyState }));
+                console.log("[XRVideo] attached stream", streamInfo.cameraId, streamInfo.label, trackStates);
+            }
+
+            return {
+                cameraId: streamInfo.cameraId,
+                label: streamInfo.label,
+                video,
+            };
+        });
+    }, [remoteStreams]);
+
+    useEffect(() => {
+        const cleanups: Array<() => void> = [];
+
+        for (const entry of videoEntries) {
+            const { cameraId, label, video } = entry;
+
+            const logVideoState = (eventName: string) => {
+                console.log(
+                    `[XRVideo] ${eventName}`,
+                    cameraId,
+                    label,
+                    {
+                        readyState: video.readyState,
+                        paused: video.paused,
+                        width: video.videoWidth,
+                        height: video.videoHeight,
+                    }
+                );
+            };
+
+            const onLoadedMetadata = () => logVideoState("loadedmetadata");
+            const onCanPlay = () => logVideoState("canplay");
+            const onPlaying = () => logVideoState("playing");
+            const onWaiting = () => logVideoState("waiting");
+            const onStalled = () => logVideoState("stalled");
+            const onError = () => logVideoState("error");
+
+            video.addEventListener("loadedmetadata", onLoadedMetadata);
+            video.addEventListener("canplay", onCanPlay);
+            video.addEventListener("playing", onPlaying);
+            video.addEventListener("waiting", onWaiting);
+            video.addEventListener("stalled", onStalled);
+            video.addEventListener("error", onError);
+
+            video
+                .play()
+                .then(() => logVideoState("play-resolved"))
+                .catch((err) => {
+                    console.warn("[XRVideo] play rejected", cameraId, label, err);
+                });
+
+            cleanups.push(() => {
+                video.removeEventListener("loadedmetadata", onLoadedMetadata);
+                video.removeEventListener("canplay", onCanPlay);
+                video.removeEventListener("playing", onPlaying);
+                video.removeEventListener("waiting", onWaiting);
+                video.removeEventListener("stalled", onStalled);
+                video.removeEventListener("error", onError);
+            });
+        }
+
+        return () => {
+            cleanups.forEach((cleanup) => cleanup());
+        };
+    }, [videoEntries]);
+
+    // Cleanup video elements on unmount
+    useEffect(() => {
+        return () => {
+            for (const video of videoByCameraIdRef.current.values()) {
+                video.srcObject = null;
+            }
+            videoByCameraIdRef.current.clear();
+        };
+    }, []);
+
+    if (remoteStreams.length === 0) {
+        return null;
+    }
+
+    // Calculate offset to center the row of videos
+    const offset = ((remoteStreams.length - 1) * 0.4) / 2;
+    const basePosition: [number, number, number] = [0, TABLE_HEIGHT / 2 + 0.25, -TABLE_DEPTH / 2 - 0.01];
+
+    return (
+        <group position={basePosition}>
+            {remoteStreams.map((stream, index) => (
+                <HandleTarget key={stream.cameraId}>
+                    <Handle targetRef="from-context">
+                        <group position={[index * 0.4 - offset, 0, 0]}>
+                            <XRLayer
+                                src={videoEntries[index]?.video}
+                                scale={0.25}
+                                onClick={() => videoEntries[index]?.video?.play()}
+                            />
+                        </group>
+                    </Handle>
+                </HandleTarget>
+            ))}
+        </group>
+    );
+}
+
+function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTracking }: { remoteStreams: RemoteCameraStream[], onJointValuesUpdate: (robotId: string, joints: number[]) => void, trackingEnabled: boolean, onStartTracking: () => void }) {
 
     // Corner positions for handles (on top of the table surface)
     const handlePositions: [number, number, number][] = [
@@ -221,16 +348,8 @@ function Table({ video, onJointValuesUpdate, trackingEnabled, onStartTracking }:
                         </Handle>
                     ))}
 
-                    {/* Video screen upright at back edge of table */}
-                    {video && (
-                        <XRLayer
-                            position={[0, TABLE_HEIGHT / 2 + 0.25, -TABLE_DEPTH / 2 - 0.01]}
-                            rotation={[0, 0, 0]}
-                            onClick={() => video?.play()}
-                            scale={0.3}
-                            src={video}
-                        />
-                    )}
+                    {/* Draggable video panels for multiple camera streams */}
+                    <DraggableVideoPanels remoteStreams={remoteStreams} />
 
                     {/* Start tracking button at front edge of table */}
                     <StartTrackingButton onStart={onStartTracking} trackingEnabled={trackingEnabled} />
@@ -264,25 +383,16 @@ function Table({ video, onJointValuesUpdate, trackingEnabled, onStartTracking }:
 
 export default function ClientViewXR({
     store,
-    remoteStream,
+    remoteStreams,
     onJointValuesUpdate,
     onExitXR
 }: {
     store: XRStore | null,
-    remoteStream: MediaStream | null,
+    remoteStreams: RemoteCameraStream[],
     onJointValuesUpdate: (robotId: string, joints: number[]) => void,
     onExitXR: () => void
 }) {
     const [trackingEnabled, setTrackingEnabled] = useState(false);
-
-    const video = useMemo(() => {
-        if (!remoteStream) return null;
-        const video = document.createElement('video');
-        video.srcObject = remoteStream;
-        video.autoplay = true;
-
-        return video;
-    }, [remoteStream]);
 
 
     if (!store) {
@@ -314,7 +424,7 @@ export default function ClientViewXR({
                     <ambientLight intensity={0.5} />
                     <directionalLight position={[5, 5, 5]} intensity={0.8} />
                     <Table
-                        video={video}
+                        remoteStreams={remoteStreams}
                         onJointValuesUpdate={onJointValuesUpdate}
                         trackingEnabled={trackingEnabled}
                         onStartTracking={() => setTrackingEnabled(prev => !prev)}

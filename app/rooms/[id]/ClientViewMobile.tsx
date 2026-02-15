@@ -11,6 +11,7 @@ import RobotVisualizer from "@/app/RobotVisualizer";
 import { Joystick } from "./Joystick";
 import { Vector3 } from "three";
 import { MobileControlSection } from "./MobileControlSection";
+import { RemoteCameraStream } from "./useMultiVideoCallConnectionClientside";
 
 export function ClientViewMobile({
   isInControl,
@@ -18,7 +19,7 @@ export function ClientViewMobile({
   handleJointValuesUpdate,
   roomPassword,
   setRoomPassword,
-  remoteStream,
+  remoteStreams,
   handleRequestControl,
   isRequestingControl,
   peerIsConnected,
@@ -29,13 +30,23 @@ export function ClientViewMobile({
   handleJointValuesUpdate: (robotId: string, jointValues: number[]) => void;
   roomPassword: string;
   setRoomPassword: (roomPassword: string) => void;
-  remoteStream: MediaStream | null;
+  remoteStreams: RemoteCameraStream[];
   handleRequestControl: () => void;
   isRequestingControl: boolean;
   requestStatus: string | null;
   peerIsConnected: boolean;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+
+  // Adjust camera index when streams array changes
+  useEffect(() => {
+    if (remoteStreams.length === 0) {
+      setCurrentCameraIndex(0);
+    } else if (currentCameraIndex >= remoteStreams.length) {
+      setCurrentCameraIndex(remoteStreams.length - 1);
+    }
+  }, [remoteStreams.length, currentCameraIndex]);
 
   const mobileGoal = useRef<MobileGoal>({
     right: {
@@ -172,7 +183,9 @@ export function ClientViewMobile({
       <div className="absolute top-4 right-4 z-10 max-w-[240px]">
         <div className="bg-white rounded-lg border border-gray-200 shadow-lg p-2.5">
           <MobileRemoteViewSection
-            remoteStream={remoteStream}
+            remoteStreams={remoteStreams}
+            currentCameraIndex={currentCameraIndex}
+            setCurrentCameraIndex={setCurrentCameraIndex}
             isInControl={isInControl}
           />
         </div>
@@ -217,25 +230,101 @@ function MobileRoomPasswordSection({
 }
 
 function MobileRemoteViewSection({
-  remoteStream,
+  remoteStreams,
+  currentCameraIndex,
+  setCurrentCameraIndex,
   isInControl,
 }: {
-  remoteStream: MediaStream | null;
+  remoteStreams: RemoteCameraStream[];
+  currentCameraIndex: number;
+  setCurrentCameraIndex: (index: number) => void;
   isInControl: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const currentStream = remoteStreams[currentCameraIndex] ?? null;
+  const hasMultipleCameras = remoteStreams.length > 1;
+  const canGoLeft = currentCameraIndex > 0;
+  const canGoRight = currentCameraIndex < remoteStreams.length - 1;
+
   useEffect(() => {
-    if (videoRef.current && remoteStream) {
-      videoRef.current.srcObject = remoteStream;
+    if (videoRef.current && currentStream) {
+      videoRef.current.srcObject = currentStream.stream;
     }
-  }, [remoteStream]);
+  }, [currentStream]);
+
+  const handlePrevCamera = () => {
+    if (canGoLeft) {
+      setCurrentCameraIndex(currentCameraIndex - 1);
+    }
+  };
+
+  const handleNextCamera = () => {
+    if (canGoRight) {
+      setCurrentCameraIndex(currentCameraIndex + 1);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-1.5">
-      <h3 className="text-xs font-medium text-gray-700">Remote Feed</h3>
+      {/* Header with navigation */}
+      <div className="flex items-center justify-between">
+        {hasMultipleCameras ? (
+          <>
+            <button
+              onClick={handlePrevCamera}
+              disabled={!canGoLeft}
+              className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Previous camera"
+            >
+              <svg
+                className="w-4 h-4 text-gray-700"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
+            <h3 className="text-xs font-medium text-gray-700 truncate px-1">
+              {currentStream?.label ?? "No Camera"}
+            </h3>
+            <button
+              onClick={handleNextCamera}
+              disabled={!canGoRight}
+              className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Next camera"
+            >
+              <svg
+                className="w-4 h-4 text-gray-700"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <h3 className="text-xs font-medium text-gray-700">
+            {currentStream?.label ?? "Remote Feed"}
+          </h3>
+        )}
+      </div>
+
+      {/* Video container */}
       <div className="bg-gray-50 rounded-md border border-gray-300 overflow-hidden aspect-video">
-        {remoteStream && isInControl ? (
+        {currentStream && isInControl ? (
           <video
             ref={videoRef}
             autoPlay
@@ -268,12 +357,34 @@ function MobileRemoteViewSection({
           </div>
         )}
       </div>
-      {isInControl && remoteStream && (
-        <div className="flex items-center space-x-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-          <span className="text-xs text-gray-600">Stream active</span>
-        </div>
-      )}
+
+      {/* Position indicator dots and stream status */}
+      <div className="flex items-center justify-between">
+        {hasMultipleCameras ? (
+          <div className="flex items-center gap-1">
+            {remoteStreams.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentCameraIndex(index)}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  index === currentCameraIndex
+                    ? "bg-blue-600"
+                    : "bg-gray-300 hover:bg-gray-400"
+                }`}
+                aria-label={`Go to camera ${index + 1}`}
+              />
+            ))}
+          </div>
+        ) : (
+          <div />
+        )}
+        {isInControl && currentStream && (
+          <div className="flex items-center space-x-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <span className="text-xs text-gray-600">Stream active</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

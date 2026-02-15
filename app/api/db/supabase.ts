@@ -48,6 +48,12 @@ export type RoomInfo = {
       pw?: string;
     }
   >;
+  // Cameras being broadcast by host
+  broadcastCameras?: {
+    cameraId: string;
+    label: string;
+    enabled: boolean;
+  }[];
   version: string;
 };
 

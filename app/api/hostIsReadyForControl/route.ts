@@ -29,15 +29,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Preserve existing control/request state; only mark host connectivity as ready.
+    const existingRoom = await RoomManager.getRoom(roomId);
+
+    if (existingRoom && existingRoom.hostId !== hostId) {
+      return NextResponse.json(
+        { error: "Unauthorized: you are not the host of this room" },
+        { status: 403 }
+      );
+    }
+
     // Create or update room
     const room = await RoomManager.createOrUpdateRoom(roomId, {
       hostId,
       hostPeerId: peerId,
-      currentControllingClientId: null,
-      info: {
-        requestingClientIds: {},
-        version: "0",
-      },
+      currentControllingClientId:
+        existingRoom?.currentControllingClientId ?? undefined,
+      info: existingRoom?.info,
     });
 
     return NextResponse.json({
