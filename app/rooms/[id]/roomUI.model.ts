@@ -16,6 +16,12 @@ export interface RoomResponse {
   error?: string;
 }
 
+export interface BroadcastCamera {
+  cameraId: string;
+  label: string;
+  enabled: boolean;
+}
+
 export interface ClientRoomInfo {
   roomId: string;
   hostId: string;
@@ -24,6 +30,7 @@ export interface ClientRoomInfo {
   isController: boolean;
   requestingClientIds: string[];
   hasRequested: boolean;
+  broadcastCameras?: BroadcastCamera[];
 }
 
 export interface ClientRoomInfoResponse {

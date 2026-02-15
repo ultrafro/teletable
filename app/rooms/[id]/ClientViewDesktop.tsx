@@ -1,6 +1,7 @@
 import RobotVisualizer from "@/app/RobotVisualizer";
 import { DataFrame } from "@/app/teletable.model";
 import { RefObject, useEffect, useRef } from "react";
+import { RemoteCameraStream } from "./useMultiVideoCallConnectionClientside";
 
 export function ClientViewDesktop({
   isInControl,
@@ -8,7 +9,7 @@ export function ClientViewDesktop({
   handleJointValuesUpdate,
   roomPassword,
   setRoomPassword,
-  remoteStream,
+  remoteStreams,
   handleRequestControl,
   isRequestingControl,
   peerIsConnected,
@@ -20,7 +21,7 @@ export function ClientViewDesktop({
   handleJointValuesUpdate: (robotId: string, jointValues: number[]) => void;
   roomPassword: string;
   setRoomPassword: (roomPassword: string) => void;
-  remoteStream: MediaStream | null;
+  remoteStreams: RemoteCameraStream[];
   handleRequestControl: () => void;
   isRequestingControl: boolean;
   requestStatus: string | null;
@@ -74,14 +75,14 @@ export function ClientViewDesktop({
 
           {/* Remote View Section */}
           <RemoteViewSection
-            remoteStream={remoteStream}
+            remoteStreams={remoteStreams}
             isInControl={isInControl}
           />
 
           {/* Connection Status Section */}
           <ConnectionStatusSection
             peerIsConnected={peerIsConnected}
-            remoteStream={remoteStream}
+            remoteStreams={remoteStreams}
             isInControl={isInControl}
           />
 
@@ -121,37 +122,73 @@ export function RoomPasswordSection({
   );
 }
 
-export function RemoteViewSection({
-  remoteStream,
-  isInControl,
+function SingleCameraView({
+  cameraStream,
 }: {
-  remoteStream: MediaStream | null;
-  isInControl: boolean;
+  cameraStream: RemoteCameraStream;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  //Handle video stream display
+
   useEffect(() => {
-    console.log("remote stream changed to:", remoteStream);
-    if (videoRef.current && remoteStream) {
-      videoRef.current.srcObject = remoteStream;
+    console.log("Camera stream changed for:", cameraStream.label, cameraStream.stream);
+    if (videoRef.current && cameraStream.stream) {
+      videoRef.current.srcObject = cameraStream.stream;
     }
-  }, [remoteStream]);
+  }, [cameraStream.stream, cameraStream.label]);
+
+  return (
+    <div className="bg-background rounded-lg border border-foreground/10 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-foreground/5 border-b border-foreground/10">
+        <span className="text-sm font-medium text-foreground">{cameraStream.label}</span>
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+          <span className="text-xs text-foreground/70">Active</span>
+        </div>
+      </div>
+      <div className="aspect-video">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={true}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    </div>
+  );
+}
+
+export function RemoteViewSection({
+  remoteStreams,
+  isInControl,
+}: {
+  remoteStreams: RemoteCameraStream[];
+  isInControl: boolean;
+}) {
+  const hasStreams = remoteStreams.length > 0;
 
   return (
     <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4 flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">Remote View</h3>
+        {hasStreams && (
+          <span className="text-xs text-foreground/70">
+            {remoteStreams.length} camera{remoteStreams.length !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
-      <div className="bg-background rounded-lg border border-foreground/10 overflow-hidden aspect-video">
-        {remoteStream && isInControl ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted={true}
-            className="w-full h-full object-cover"
-          />
-        ) : (
+
+      {hasStreams ? (
+        <div className="flex flex-col space-y-4 max-h-[60vh] overflow-y-auto">
+          {remoteStreams.map((cameraStream) => (
+            <SingleCameraView
+              key={cameraStream.cameraId}
+              cameraStream={cameraStream}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="bg-background rounded-lg border border-foreground/10 overflow-hidden aspect-video">
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-center">
               <div className="w-12 h-12 bg-foreground/10 rounded-full flex items-center justify-center mb-3 mx-auto">
@@ -172,27 +209,27 @@ export function RemoteViewSection({
               <p className="text-foreground/70 text-sm">
                 {isInControl
                   ? "Connecting to host stream..."
-                  : "Waiting for remote feed..."}
+                  : "Waiting for host camera feeds..."}
               </p>
               <p className="text-foreground/50 text-xs mt-1">
-                {!isInControl && "Request control to start viewing"}
+                {!isInControl && "Request control to drive the robot"}
               </p>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {isInControl && (
+      {(
         <div className="mt-3 flex items-center justify-between">
           <div className="text-xs text-foreground/70">
             <div className="flex items-center space-x-2">
               <div
-                className={`w-2 h-2 rounded-full ${remoteStream ? "bg-green-500" : "bg-yellow-500"
+                className={`w-2 h-2 rounded-full ${hasStreams ? "bg-green-500" : "bg-yellow-500"
                   }`}
               ></div>
               <span>
-                {remoteStream
-                  ? "Video stream active"
+                {hasStreams
+                  ? `${remoteStreams.length} stream${remoteStreams.length !== 1 ? 's' : ''} active`
                   : "Establishing connection..."}
               </span>
             </div>
@@ -211,13 +248,16 @@ export function RemoteViewSection({
 
 export function ConnectionStatusSection({
   peerIsConnected,
-  remoteStream,
+  remoteStreams,
   isInControl,
 }: {
   peerIsConnected: boolean;
-  remoteStream: MediaStream | null;
+  remoteStreams: RemoteCameraStream[];
   isInControl: boolean;
 }) {
+  const activeStreamCount = remoteStreams.length;
+  const hasActiveStreams = activeStreamCount > 0;
+
   return (
     <div className="bg-foreground/5 rounded-lg border border-foreground/10 p-4">
       <h3 className="text-lg font-semibold text-foreground mb-4">
@@ -238,14 +278,16 @@ export function ConnectionStatusSection({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-foreground/70">Video Call</span>
+          <span className="text-sm text-foreground/70">Video Streams</span>
           <div className="flex items-center space-x-2">
             <div
-              className={`w-2 h-2 rounded-full ${remoteStream ? "bg-green-500" : "bg-gray-400"
+              className={`w-2 h-2 rounded-full ${hasActiveStreams ? "bg-green-500" : "bg-gray-400"
                 }`}
             ></div>
             <span className="text-sm">
-              {remoteStream ? "Active" : "Inactive"}
+              {hasActiveStreams
+                ? `${activeStreamCount} active`
+                : "Inactive"}
             </span>
           </div>
         </div>

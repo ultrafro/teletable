@@ -54,9 +54,20 @@ export function useResetRoomWhenHostDisconnects(roomData: RoomData, peer: UsePee
 }
 
 export function useMakeRoomReadyOnLoad(roomData: RoomData, handleMakeRoomReady: () => void) {
+    const hasRequestedReadyRef = useRef(false);
+
     useEffect(() => {
-        if (roomData.hostPeerId === null) {
+        hasRequestedReadyRef.current = false;
+    }, [roomData.roomId]);
+
+    useEffect(() => {
+        if (roomData.hostPeerId === null && !hasRequestedReadyRef.current) {
+            hasRequestedReadyRef.current = true;
             handleMakeRoomReady();
+        }
+
+        if (roomData.hostPeerId !== null) {
+            hasRequestedReadyRef.current = false;
         }
     }, [roomData.hostPeerId, handleMakeRoomReady]);
 }

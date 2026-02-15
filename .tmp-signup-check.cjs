@@ -1,0 +1,20 @@
+const { chromium } = require('playwright');
+(async()=>{
+ const browser = await chromium.launch({headless:false});
+ const ctx = await browser.newContext();
+ const page = await ctx.newPage();
+ const email = `codex${Date.now()}@example.com`;
+ const password = 'CodexPass123!';
+ await page.goto('http://localhost:3000', {waitUntil:'domcontentloaded', timeout:60000});
+ await page.getByRole('button', {name:'Sign In'}).click();
+ await page.getByRole('button', {name:"Don't have an account? Sign up"}).click();
+ await page.getByLabel('Email address').fill(email);
+ await page.getByLabel('Password').fill(password);
+ await page.getByRole('button', {name:'Sign Up'}).click();
+ await page.waitForTimeout(8000);
+ console.log('url', page.url());
+ const txt = await page.locator('body').innerText();
+ console.log('hasHome', txt.includes('Your Rooms'));
+ console.log('hasError', txt.includes('error') || txt.includes('Error'));
+ await browser.close();
+})();
