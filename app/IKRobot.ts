@@ -172,13 +172,30 @@ export class IKRobot {
     // this.gripperGoal.makeClosure(this.gripperLink);
 
     this.solver = new Solver(this.ikRobot);
-    this.solver.maxIterations = 10;
-    this.solver.divergeThreshold = 0.005;
+    // this.solver.maxIterations = 10;
+    // this.solver.divergeThreshold = 0.005;
+    // this.solver.stallThreshold = 1e-3;
+    // this.solver.translationErrorClamp = 0.25;
+    // this.solver.translationConvergeThreshold = 1e-3;
+    // this.solver.restPoseFactor = 0.001;
+
+
+
+
+
+    this.solver.maxIterations = 20;
+    this.solver.divergeThreshold = 0.01;
     this.solver.stallThreshold = 1e-3;
-    this.solver.translationErrorClamp = 0.25;
+    this.solver.translationErrorClamp = 0.1;
     this.solver.translationConvergeThreshold = 1e-3;
     this.solver.restPoseFactor = 0.001;
+    this.solver.dampingFactor = 0.005;
+
+
+
+
   }
+
 
   setDirectValues(directValues: number[]) {
     this.directValues = directValues;
