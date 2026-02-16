@@ -9,9 +9,10 @@ import { Clamper } from "./Clamper";
 import RobotVisualizer, { RobotVisualizerXR } from "@/app/RobotVisualizer";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { Euler, Quaternion, Vector3 } from "three";
+import { Euler, Object3D, Quaternion, Vector3 } from "three";
 import { XrUi, Layer } from "react-xr-ui";
 import { RemoteCameraStream } from "./useMultiVideoCallConnectionClientside";
+import { calculateLocalXAngleDeg, calculateLocalZAngleDeg } from "./angleUtils";
 
 // Import fiber separately (doesn't have WebXR dependencies)
 const Canvas = dynamic(
@@ -284,7 +285,13 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         //find the left pitch. it's the local "x" angle of the left controller
         const leftLocalEuler = new Euler().setFromQuaternion(leftController.quaternion.clone());
         //mobileGoal.current.left.pitch = -leftLocalEuler.x * 180 / Math.PI;
-        mobileGoal.current.left.pitch = -leftLocalEuler.x;
+        //mobileGoal.current.left.pitch = -leftLocalEuler.x;
+
+        mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion);
+        mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion);
+
+        mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
+        mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
 
         // //find the left pitch. it's the relative "x" angle between the left controller and the table surface
         // const leftWorldQuaternion = leftController.quaternion.clone();
@@ -295,7 +302,7 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         // const leftToTableEuler = new Euler().setFromQuaternion(leftToTableQuaternion);
         // mobileGoal.current.left.pitch = -leftToTableEuler.x * 180 / Math.PI;
         //mobileGoal.current.left.roll = leftLocalEuler.z * 180 / Math.PI;
-        mobileGoal.current.left.roll = leftLocalEuler.z;
+        //mobileGoal.current.left.roll = leftLocalEuler.z;
 
 
 
@@ -325,12 +332,18 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         // mobileGoal.current.right.pitch = -rightLocalEuler.x * 180 / Math.PI;
         // mobileGoal.current.right.roll = rightLocalEuler.z * 180 / Math.PI;
 
-        mobileGoal.current.right.pitch = -rightLocalEuler.x;
-        mobileGoal.current.right.roll = rightLocalEuler.z;
+        // mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion);
+        // mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion);
+
+        mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
+        mobileGoal.current.right.roll = -rightController.xyAccumulator.x;
+
+
+        // mobileGoal.current.right.pitch = -rightLocalEuler.x;
+        // mobileGoal.current.right.roll = rightLocalEuler.z;
 
 
     });
-
 
     return (
         <>
