@@ -283,7 +283,8 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
 
         //find the left pitch. it's the local "x" angle of the left controller
         const leftLocalEuler = new Euler().setFromQuaternion(leftController.quaternion.clone());
-        mobileGoal.current.left.pitch = -leftLocalEuler.x * 180 / Math.PI;
+        //mobileGoal.current.left.pitch = -leftLocalEuler.x * 180 / Math.PI;
+        mobileGoal.current.left.pitch = -leftLocalEuler.x;
 
         // //find the left pitch. it's the relative "x" angle between the left controller and the table surface
         // const leftWorldQuaternion = leftController.quaternion.clone();
@@ -293,7 +294,8 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         // const leftToTableQuaternion = leftWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
         // const leftToTableEuler = new Euler().setFromQuaternion(leftToTableQuaternion);
         // mobileGoal.current.left.pitch = -leftToTableEuler.x * 180 / Math.PI;
-        mobileGoal.current.left.roll = leftLocalEuler.z * 180 / Math.PI;
+        //mobileGoal.current.left.roll = leftLocalEuler.z * 180 / Math.PI;
+        mobileGoal.current.left.roll = leftLocalEuler.z;
 
 
 
@@ -320,8 +322,12 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         const rightToTableQuaternion = rightWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
         const rightToTableEuler = new Euler().setFromQuaternion(rightToTableQuaternion);
         //mobileGoal.current.right.pitch = -rightToTableEuler.x * 180 / Math.PI;
-        mobileGoal.current.right.pitch = -rightLocalEuler.x * 180 / Math.PI;
-        mobileGoal.current.right.roll = rightLocalEuler.z * 180 / Math.PI;
+        // mobileGoal.current.right.pitch = -rightLocalEuler.x * 180 / Math.PI;
+        // mobileGoal.current.right.roll = rightLocalEuler.z * 180 / Math.PI;
+
+        mobileGoal.current.right.pitch = -rightLocalEuler.x;
+        mobileGoal.current.right.roll = rightLocalEuler.z;
+
 
     });
 
