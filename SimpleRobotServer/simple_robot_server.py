@@ -463,7 +463,7 @@ def display_devices(devices: List[Tuple[str, str, str]]):
 def find_robot_folders() -> List[Path]:
     """
     Find all robot folders in SimpleRobotServer/robots/.
-    Each robot folder should contain a calibration.json file.
+    Accepts either calibration.json or <robot_id>.json in each folder.
     
     Returns:
         List of Path objects to robot folders
@@ -475,16 +475,232 @@ def find_robot_folders() -> List[Path]:
         logger.warning(f"Robots directory not found: {robots_dir}")
         return []
     
-    # Look for folders containing calibration.json
+    # Look for folders containing supported calibration file names
     for item in robots_dir.iterdir():
         if item.is_dir():
             calib_file = item / "calibration.json"
+            legacy_calib_file = item / f"{item.name}.json"
             if calib_file.exists():
                 robot_folders.append(item)
+            elif legacy_calib_file.exists():
+                robot_folders.append(item)
             else:
-                logger.debug(f"Skipping {item.name}: no calibration.json found")
+                logger.debug(f"Skipping {item.name}: no calibration file found")
     
     return robot_folders
+
+
+def get_robot_calibration_file(robot_folder: Path) -> Optional[Path]:
+    """Resolve calibration file path for a robot folder."""
+    preferred = robot_folder / "calibration.json"
+    legacy = robot_folder / f"{robot_folder.name}.json"
+    if preferred.exists():
+        return preferred
+    if legacy.exists():
+        return legacy
+    return None
+
+
+def record_new_calibration(role: str, robot_port: str) -> Optional[str]:
+    """
+    Run an interactive calibration routine and save it under robots/<role>/<role>.json.
+    
+    Args:
+        role: Robot role/id ('left' or 'right')
+        robot_port: Serial port for the robot
+    
+    Returns:
+        Path to saved calibration file, or None if calibration failed.
+    """
+    try:
+        from lerobot.robots.so101_follower.so101_follower import SO101Follower
+        from lerobot.robots.so101_follower.config_so101_follower import SO101FollowerConfig
+    except Exception as e:
+        logger.error(f"❌ Failed to import LeRobot calibration tools: {e}")
+        return None
+    
+    role_dir = Path(__file__).parent / "robots" / role
+    role_dir.mkdir(parents=True, exist_ok=True)
+    
+    print("\n" + "="*60)
+    print(f"🧪 Recording NEW calibration for {role.upper()} arm on {robot_port}")
+    print("="*60)
+    print("Follow the on-screen calibration prompts carefully.")
+    
+    robot = None
+    try:
+        config = SO101FollowerConfig(
+            port=robot_port,
+            use_degrees=False,
+            id=role,
+            calibration_dir=role_dir
+        )
+        robot = SO101Follower(config)
+        
+        # Connect without auto-calibration prompt, then run explicit calibration.
+        robot.connect(calibrate=False)
+        robot.calibrate()
+        
+        calibration_path = role_dir / f"{role}.json"
+        if calibration_path.exists():
+            print(f"✅ Saved new calibration: {calibration_path}")
+            return str(calibration_path)
+        
+        fallback = get_robot_calibration_file(role_dir)
+        if fallback:
+            print(f"✅ Saved new calibration: {fallback}")
+            return str(fallback)
+        
+        logger.error("❌ Calibration finished but no calibration file was found.")
+        return None
+    except ValueError as e:
+        # Common SO101 calibration failure: motor position too far from half-turn center.
+        if "exceeds 2047" in str(e):
+            logger.error(f"❌ Failed to record calibration for {role} arm on {robot_port}: {e}")
+            logger.error("At least one joint is outside the homing-offset range while setting half-turn homing.")
+            
+            if robot and getattr(robot, "bus", None):
+                try:
+                    motors = list(robot.bus.motors)
+                    positions = robot.bus.sync_read("Present_Position", motors, normalize=False)
+                    logger.error("Raw motor positions (target center is around 2047 counts):")
+                    for motor in motors:
+                        pos = positions[motor]
+                        offset = pos - 2047
+                        status = "OUT_OF_RANGE" if abs(offset) > 2047 else "ok"
+                        logger.error(
+                            f"  - {motor}: pos={pos}, homing_offset={offset} ({status})"
+                        )
+                except Exception as position_error:
+                    logger.warning(f"⚠️ Could not read motor positions for diagnostics: {position_error}")
+            
+            logger.error("Recovery steps:")
+            logger.error("  1. Put every joint near the middle of its physical range.")
+            logger.error("  2. Keep wrist_roll away from hard endpoints.")
+            logger.error("  3. Retry calibration.")
+            logger.error("  4. If it still fails, use existing calibration for now and recalibrate later.")
+            return None
+        
+        logger.error(f"❌ Failed to record calibration for {role} arm on {robot_port}: {e}")
+        logger.error(traceback.format_exc())
+        return None
+    except Exception as e:
+        logger.error(f"❌ Failed to record calibration for {role} arm on {robot_port}: {e}")
+        logger.error(traceback.format_exc())
+        return None
+    finally:
+        if robot:
+            try:
+                robot.disconnect()
+            except Exception as disconnect_error:
+                logger.warning(f"⚠️ Failed to disconnect calibration session cleanly: {disconnect_error}")
+
+
+def choose_calibration_for_role(
+    role: str,
+    robot_port: str,
+    robot_folders: List[Path]
+) -> Tuple[bool, Optional[str]]:
+    """
+    Prompt for calibration strategy for a role.
+    
+    Returns:
+        (True, calibration_path_or_none) if selection was completed
+        (False, None) if user cancelled
+    """
+    while True:
+        print(f"\n📐 Calibration for {role.upper()} arm ({robot_port}):")
+        print("  1. Use pre-existing config")
+        print("  2. Record new config")
+        print("  q. Quit setup")
+        
+        try:
+            choice = input("Choose an option [1/2/q]: ").strip().lower()
+        except KeyboardInterrupt:
+            print("\nSetup cancelled.")
+            return False, None
+        
+        if choice in ['q', 'quit']:
+            print("Setup cancelled.")
+            return False, None
+        
+        if choice == '1':
+            if not robot_folders:
+                print("❌ No pre-existing calibration profiles found.")
+                continue
+            
+            ordered_folders = sorted(
+                robot_folders,
+                key=lambda folder: (0 if folder.name.lower() == role else 1, folder.name.lower())
+            )
+            
+            while True:
+                print("\nSelect a pre-existing calibration profile:")
+                for i, folder in enumerate(ordered_folders, 1):
+                    calib_file = get_robot_calibration_file(folder)
+                    label = " (recommended)" if folder.name.lower() == role else ""
+                    print(f"  {i}. {folder.name}{label}")
+                    print(f"     {calib_file}")
+                print("  b. Back")
+                print("  q. Quit setup")
+                
+                try:
+                    profile_choice = input(
+                        f"Select profile (1-{len(ordered_folders)}), 'b', or 'q': "
+                    ).strip().lower()
+                except KeyboardInterrupt:
+                    print("\nSetup cancelled.")
+                    return False, None
+                
+                if profile_choice in ['q', 'quit']:
+                    print("Setup cancelled.")
+                    return False, None
+                if profile_choice in ['b', 'back']:
+                    break
+                
+                try:
+                    profile_num = int(profile_choice)
+                except ValueError:
+                    print("❌ Invalid input. Enter a number, 'b', or 'q'.")
+                    continue
+                
+                if not (1 <= profile_num <= len(ordered_folders)):
+                    print(f"❌ Invalid selection. Please enter a number between 1 and {len(ordered_folders)}.")
+                    continue
+                
+                selected_folder = ordered_folders[profile_num - 1]
+                calibration_path = get_robot_calibration_file(selected_folder)
+                if not calibration_path:
+                    print(f"❌ Selected profile '{selected_folder.name}' has no calibration file.")
+                    continue
+                
+                print(f"✅ Using pre-existing calibration: {selected_folder.name}")
+                return True, str(calibration_path)
+            
+            continue
+        
+        if choice == '2':
+            calibration_path = record_new_calibration(role, robot_port)
+            if calibration_path:
+                return True, calibration_path
+            
+            while True:
+                retry_choice = input(
+                    "Calibration recording failed. Retry [r], choose existing [e], or quit [q]: "
+                ).strip().lower()
+                if retry_choice in ['q', 'quit']:
+                    print("Setup cancelled.")
+                    return False, None
+                if retry_choice in ['r', 'retry']:
+                    break
+                if retry_choice in ['e', 'existing']:
+                    # Return to top-level menu and let user pick existing profile
+                    break
+                print("Please enter 'r', 'e', or 'q'.")
+            
+            continue
+        
+        print("❌ Invalid option. Please choose 1, 2, or q.")
 
 
 def load_existing_config() -> Optional[Dict]:
@@ -509,28 +725,79 @@ def check_and_use_existing_config(config: Dict, available_ports: List[str]) -> b
     Returns:
         True if config can be used automatically, False if needs reconfiguration
     """
-    saved_port = config.get('robot_port')
-    robot_id = config.get('robot_id')
-    
     print("\n" + "="*60)
     print("🔧 Found existing configuration:")
     print("="*60)
+    
+    # Multi-robot config
+    if 'robots' in config:
+        robots = config.get('robots', [])
+        if not robots:
+            print("❌ Existing config has an empty 'robots' list.")
+            return False
+        
+        missing_ports = []
+        for i, robot_cfg in enumerate(robots, 1):
+            robot_id = robot_cfg.get('robot_id', f'robot_{i}')
+            robot_port = robot_cfg.get('robot_port')
+            calibration_file = robot_cfg.get('calibration_file', 'None')
+            print(f"  Robot {i}:")
+            print(f"    Robot ID: {robot_id}")
+            print(f"    Port: {robot_port}")
+            print(f"    Calibration: {calibration_file}")
+            if robot_port not in available_ports:
+                missing_ports.append((robot_id, robot_port))
+        print()
+        
+        if missing_ports:
+            print("⚠️  Some configured robot ports are not currently connected:")
+            for robot_id, robot_port in missing_ports:
+                print(f"   - {robot_id}: {robot_port}")
+            print(f"   Available ports: {', '.join(available_ports) if available_ports else 'None'}")
+            print()
+            print("❌ Need to reconfigure robot-to-port mapping.")
+            return False
+        
+        print("✅ All configured robot ports are connected")
+        print("✅ Auto-starting with saved configuration...")
+        return True
+    
+    # Legacy single-robot config
+    saved_port = config.get('robot_port')
+    robot_id = config.get('robot_id')
     print(f"  Robot ID: {robot_id}")
     print(f"  Port: {saved_port}")
     print(f"  Calibration: {config.get('calibration_file', 'None')}")
     print()
     
-    # Check if the saved port is still available
     if saved_port in available_ports:
         print(f"✅ Port {saved_port} is still connected")
-        print(f"✅ Auto-starting with saved configuration...")
+        
+        # If multiple devices are connected, offer dual-arm setup.
+        if len(available_ports) >= 2:
+            print(f"\n🔎 Detected {len(available_ports)} serial devices.")
+            print("   You can keep single-arm mode or switch to dual-arm (left/right) mapping.")
+            while True:
+                try:
+                    response = input("Switch to dual-arm setup now? [y/N]: ").strip().lower()
+                    if response in ['y', 'yes']:
+                        print("🔄 Reconfiguring for dual-arm mode...")
+                        return False
+                    if response in ['n', 'no', '']:
+                        break
+                    print("Please enter 'y' for yes or 'n' for no.")
+                except KeyboardInterrupt:
+                    print("\nSetup cancelled. Keeping existing configuration.")
+                    return True
+        
+        print("✅ Auto-starting with saved configuration...")
         return True
-    else:
-        print(f"⚠️  Port {saved_port} is NOT currently connected")
-        print(f"   Available ports: {', '.join(available_ports) if available_ports else 'None'}")
-        print()
-        print("❌ Robot not found on saved port. Need to reconfigure.")
-        return False
+    
+    print(f"⚠️  Port {saved_port} is NOT currently connected")
+    print(f"   Available ports: {', '.join(available_ports) if available_ports else 'None'}")
+    print()
+    print("❌ Robot not found on saved port. Need to reconfigure.")
+    return False
 
 
 def interactive_setup() -> Optional[Dict]:
@@ -546,69 +813,19 @@ def interactive_setup() -> Optional[Dict]:
     if not robot_folders:
         print("❌ No robot folders found in SimpleRobotServer/robots/")
         print("   Expected structure: SimpleRobotServer/robots/<robot_id>/calibration.json")
-        print("\n💡 You can either:")
-        print("   1. Create a robot folder with calibration.json")
-        print("   2. Use default calibration (no folder needed)")
-        print()
-        
-        # Ask if user wants to continue with default calibration
-        while True:
-            try:
-                response = input("Continue with default calibration? [y/N]: ").strip().lower()
-                if response in ['y', 'yes']:
-                    robot_id = None
-                    calibration_file = None
-                    break
-                elif response in ['n', 'no', '']:
-                    print("Setup cancelled.")
-                    return None
-                else:
-                    print("Please enter 'y' for yes or 'n' for no.")
-            except KeyboardInterrupt:
-                print("\nSetup cancelled.")
-                return None
+        print("   or:                SimpleRobotServer/robots/<robot_id>/<robot_id>.json")
+        print("\n💡 You can continue with default calibration.")
     else:
         print(f"\n📁 Found {len(robot_folders)} robot(s):")
         print("="*60)
         for i, robot_folder in enumerate(robot_folders, 1):
             robot_id = robot_folder.name
-            calib_file = robot_folder / "calibration.json"
+            calib_file = get_robot_calibration_file(robot_folder)
             print(f"  {i}. {robot_id}")
             print(f"     Calibration: {calib_file}")
             print()
-        print(f"  {len(robot_folders) + 1}. None (use default calibration)")
-        print()
-        
-        # Step 2: Select robot
-        while True:
-            try:
-                choice = input(f"Select a robot (1-{len(robot_folders) + 1}) or 'q' to quit: ").strip().lower()
-                
-                if choice == 'q' or choice == 'quit':
-                    print("Setup cancelled.")
-                    return None
-                
-                robot_num = int(choice)
-                if 1 <= robot_num <= len(robot_folders):
-                    selected_robot = robot_folders[robot_num - 1]
-                    robot_id = selected_robot.name
-                    calibration_file = str(selected_robot / "calibration.json")
-                    print(f"✅ Selected robot: {robot_id}")
-                    break
-                elif robot_num == len(robot_folders) + 1:
-                    robot_id = None
-                    calibration_file = None
-                    print("✅ Using default calibration")
-                    break
-                else:
-                    print(f"❌ Invalid selection. Please enter a number between 1 and {len(robot_folders) + 1}.")
-            except ValueError:
-                print("❌ Invalid input. Please enter a number or 'q' to quit.")
-            except KeyboardInterrupt:
-                print("\nSetup cancelled.")
-                return None
     
-    # Step 3: Scan for serial devices
+    # Step 2: Scan for serial devices
     print("\n📡 Scanning for serial devices...")
     devices = list_serial_devices()
     
@@ -618,47 +835,146 @@ def interactive_setup() -> Optional[Dict]:
     
     display_devices(devices)
     
-    # Step 4: Select device
-    while True:
-        try:
-            choice = input(f"Select a device (1-{len(devices)}) or 'q' to quit: ").strip().lower()
+    # Step 3: Assign detected devices to LEFT/RIGHT roles
+    if len(devices) >= 2:
+        print("\n🧭 Dual-arm setup detected")
+        print("For each detected robot, assign it to LEFT or RIGHT.")
+        
+        while True:
+            role_to_port: Dict[str, str] = {}
             
-            if choice == 'q' or choice == 'quit':
+            for device, description, _ in devices:
+                while True:
+                    try:
+                        role_hint = []
+                        if 'left' not in role_to_port:
+                            role_hint.append("l=LEFT")
+                        if 'right' not in role_to_port:
+                            role_hint.append("r=RIGHT")
+                        role_hint.append("s=skip")
+                        role_hint.append("q=quit")
+                        choice = input(
+                            f"Assign {device} ({description}) [{', '.join(role_hint)}]: "
+                        ).strip().lower()
+                        
+                        if choice in ['q', 'quit']:
+                            print("Setup cancelled.")
+                            return None
+                        if choice in ['s', 'skip', '']:
+                            print(f"⏭️  Skipped {device}")
+                            break
+                        if choice in ['l', 'left']:
+                            if 'left' in role_to_port:
+                                print(f"❌ LEFT is already assigned to {role_to_port['left']}.")
+                                continue
+                            role_to_port['left'] = device
+                            print(f"✅ Assigned {device} to LEFT")
+                            break
+                        if choice in ['r', 'right']:
+                            if 'right' in role_to_port:
+                                print(f"❌ RIGHT is already assigned to {role_to_port['right']}.")
+                                continue
+                            role_to_port['right'] = device
+                            print(f"✅ Assigned {device} to RIGHT")
+                            break
+                        
+                        print("❌ Invalid choice. Use l, r, s, or q.")
+                    except KeyboardInterrupt:
+                        print("\nSetup cancelled.")
+                        return None
+            
+            if 'left' in role_to_port and 'right' in role_to_port:
+                break
+            
+            print("\n❌ You must assign one robot to LEFT and one robot to RIGHT.")
+            retry = input("Retry role assignment? [Y/q]: ").strip().lower()
+            if retry in ['q', 'quit']:
                 print("Setup cancelled.")
                 return None
+        
+        # Step 4: Calibration strategy for each role
+        robots_config = []
+        for role in ['left', 'right']:
+            ok, calibration_file = choose_calibration_for_role(
+                role=role,
+                robot_port=role_to_port[role],
+                robot_folders=robot_folders
+            )
+            if not ok:
+                return None
             
-            device_num = int(choice)
-            if 1 <= device_num <= len(devices):
-                selected_port = devices[device_num - 1][0]
-                print(f"✅ Selected port: {selected_port}")
-                break
-            else:
-                print(f"❌ Invalid selection. Please enter a number between 1 and {len(devices)}.")
-        except ValueError:
-            print("❌ Invalid input. Please enter a number or 'q' to quit.")
-        except KeyboardInterrupt:
-            print("\nSetup cancelled.")
-            return None
-    
-    # Step 5: Create configuration
-    config = {
-        'robot_id': robot_id,
-        'robot_port': selected_port,
-        'calibration_file': calibration_file,
-        'server': {
-            'host': 'localhost',
-            'port': 9000
+            robots_config.append({
+                'robot_id': role,
+                'robot_port': role_to_port[role],
+                'calibration_file': calibration_file
+            })
+            
+            # Refresh available folders in case a new calibration was recorded.
+            robot_folders = find_robot_folders()
+        
+        config = {
+            'robots': robots_config,
+            'server': {
+                'host': 'localhost',
+                'port': 9000
+            }
         }
-    }
+    else:
+        # Single-device setup: assign role then choose calibration strategy
+        selected_port = devices[0][0]
+        print(f"\n🧭 Single-arm setup for {selected_port}")
+        
+        while True:
+            try:
+                role_choice = input("Assign this robot to LEFT or RIGHT? [l/r/q]: ").strip().lower()
+                if role_choice in ['q', 'quit']:
+                    print("Setup cancelled.")
+                    return None
+                if role_choice in ['l', 'left']:
+                    robot_id = 'left'
+                    break
+                if role_choice in ['r', 'right']:
+                    robot_id = 'right'
+                    break
+                print("❌ Invalid choice. Use l, r, or q.")
+            except KeyboardInterrupt:
+                print("\nSetup cancelled.")
+                return None
+        
+        ok, calibration_file = choose_calibration_for_role(
+            role=robot_id,
+            robot_port=selected_port,
+            robot_folders=robot_folders
+        )
+        if not ok:
+            return None
+        
+        config = {
+            'robot_id': robot_id,
+            'robot_port': selected_port,
+            'calibration_file': calibration_file,
+            'server': {
+                'host': 'localhost',
+                'port': 9000
+            }
+        }
     
-    # Step 6: Save configuration
+    # Step 4: Save configuration
     config_path = Path(__file__).parent / "config.json"
     try:
         with open(config_path, 'w') as f:
             json.dump(config, f, indent=2)
         print("\n💾 Configuration saved to config.json")
-        print(f"   Robot ID: {robot_id or 'Default'}")
-        print(f"   Port: {selected_port}")
+        if 'robots' in config:
+            for robot_cfg in config['robots']:
+                print(
+                    f"   {robot_cfg['robot_id'].upper()}: "
+                    f"{robot_cfg['robot_port']} "
+                    f"(calibration: {robot_cfg.get('calibration_file') or 'Default'})"
+                )
+        else:
+            print(f"   Robot ID: {config.get('robot_id') or 'Default'}")
+            print(f"   Port: {config.get('robot_port')}")
     except Exception as e:
         logger.warning(f"⚠️  Could not save config: {e}")
     
