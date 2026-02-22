@@ -125,6 +125,7 @@ function ThumbstickToggleButton({ onToggle, useThumbstick }: { onToggle: () => v
 // Draggable video panels component for multiple camera streams
 function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraStream[] }) {
     const videoByCameraIdRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+    const [videoDimensions, setVideoDimensions] = useState<Map<string, { width: number; height: number }>>(new Map());
 
     const videoEntries = useMemo(() => {
         return remoteStreams.map((streamInfo) => {
@@ -156,6 +157,26 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
         });
     }, [remoteStreams]);
 
+    // Calculate aspect ratio for each video, accounting for stereo layout
+    const getScaleForVideo = useCallback((cameraId: string, stereoLayout: string | undefined): [number, number, number] => {
+        const dims = videoDimensions.get(cameraId);
+        const baseHeight = 0.25; // Base height in meters
+
+        if (!dims || dims.width === 0 || dims.height === 0) {
+            // Default 16:9 aspect ratio if dimensions not yet available
+            return [baseHeight * (16 / 9), baseHeight, 1];
+        }
+
+        let effectiveWidth = dims.width;
+        // For stereo-left-right, the effective width is half (each eye gets half)
+        if (stereoLayout === "stereo-left-right") {
+            //effectiveWidth = dims.width / 2;
+        }
+
+        const aspectRatio = effectiveWidth / dims.height;
+        return [baseHeight * aspectRatio, baseHeight, 1];
+    }, [videoDimensions]);
+
     useEffect(() => {
         const cleanups: Array<() => void> = [];
 
@@ -176,12 +197,29 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
                 );
             };
 
-            const onLoadedMetadata = () => logVideoState("loadedmetadata");
+            const updateDimensions = () => {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    setVideoDimensions((prev) => {
+                        const next = new Map(prev);
+                        next.set(cameraId, { width: video.videoWidth, height: video.videoHeight });
+                        return next;
+                    });
+                }
+            };
+
+            const onLoadedMetadata = () => {
+                logVideoState("loadedmetadata");
+                updateDimensions();
+            };
             const onCanPlay = () => logVideoState("canplay");
             const onPlaying = () => logVideoState("playing");
             const onWaiting = () => logVideoState("waiting");
             const onStalled = () => logVideoState("stalled");
             const onError = () => logVideoState("error");
+            const onResize = () => {
+                logVideoState("resize");
+                updateDimensions();
+            };
 
             video.addEventListener("loadedmetadata", onLoadedMetadata);
             video.addEventListener("canplay", onCanPlay);
@@ -189,6 +227,10 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
             video.addEventListener("waiting", onWaiting);
             video.addEventListener("stalled", onStalled);
             video.addEventListener("error", onError);
+            video.addEventListener("resize", onResize);
+
+            // Check if dimensions are already available
+            updateDimensions();
 
             video
                 .play()
@@ -204,6 +246,7 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
                 video.removeEventListener("waiting", onWaiting);
                 video.removeEventListener("stalled", onStalled);
                 video.removeEventListener("error", onError);
+                video.removeEventListener("resize", onResize);
             });
         }
 
@@ -232,20 +275,24 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
 
     return (
         <group position={basePosition}>
-            {remoteStreams.map((stream, index) => (
-                <HandleTarget key={stream.cameraId}>
-                    <Handle targetRef="from-context">
-                        <group position={[index * 0.4 - offset, 0, 0]}>
-                            <XRLayer
-                                src={videoEntries[index]?.video}
-                                scale={0.25}
-                                layout={videoEntries[index]?.stereoLayout || "mono"}
-                                onClick={() => videoEntries[index]?.video?.play()}
-                            />
-                        </group>
-                    </Handle>
-                </HandleTarget>
-            ))}
+            {remoteStreams.map((stream, index) => {
+                const entry = videoEntries[index];
+                const scale: [number, number, number] = entry ? getScaleForVideo(entry.cameraId, entry.stereoLayout) : [0.25 * (16 / 9), 0.25, 1];
+                return (
+                    <HandleTarget key={stream.cameraId}>
+                        <Handle targetRef="from-context">
+                            <group position={[index * 0.4 - offset, 0, 0]}>
+                                <XRLayer
+                                    src={entry?.video}
+                                    scale={scale}
+                                    layout={entry?.stereoLayout || "mono"}
+                                    onClick={() => entry?.video?.play()}
+                                />
+                            </group>
+                        </Handle>
+                    </HandleTarget>
+                );
+            })}
         </group>
     );
 }
@@ -306,7 +353,8 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion);
 
         if (useThumbstick) {
-            mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
+            //only control roll using thumbstick
+            // mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
             mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
         }
 
@@ -353,7 +401,8 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion);
 
         if (useThumbstick) {
-            mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
+            //only control pitch using thumbstick
+            // mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
             mobileGoal.current.right.roll = -rightController.xyAccumulator.x;
         }
 
