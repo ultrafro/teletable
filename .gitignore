@@ -34,8 +34,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Python virtual environment (old venv setup)
+# Python virtual environment
 robot_env/
+.venv/
 
 # Python
 __pycache__/
