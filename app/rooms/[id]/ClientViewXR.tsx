@@ -29,7 +29,7 @@ const HANDLE_SIZE = 0.06;
 
 const TABLE_OFFSET = new Vector3(0, TABLE_LEG_HEIGHT + TABLE_HEIGHT / 2, -0.8);
 
-const useThumbstick = false;
+const useThumbstick = true;
 
 // Debug component that shows a green cube at left controller position
 function DebugLeftControllerCube({ targetRef }: { targetRef: React.RefObject<THREE.Object3D> }) {
@@ -292,7 +292,7 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion);
         mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion);
 
-        if(useThumbstick){
+        if (useThumbstick) {
             mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
             mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
         }
@@ -339,9 +339,9 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion);
         mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion);
 
-        if(useThumbstick){
+        if (useThumbstick) {
             mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
-            mobileGoal.current.right.roll = -rightController.xyAccumulator.x;    
+            mobileGoal.current.right.roll = -rightController.xyAccumulator.x;
         }
 
 

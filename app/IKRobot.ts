@@ -359,7 +359,7 @@ export class IKRobot {
       (Number(this.pitchJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
     );
     jointValues.push(
-      (Number(this.wristJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
+      ((Number(this.wristJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI) * 0.5  // Scale by 0.5 to compensate for 2x wrist movement
     );
     jointValues.push(
       (Number(this.gripperJoint.getDoFValue(DOF.EZ)) * 180) / Math.PI
