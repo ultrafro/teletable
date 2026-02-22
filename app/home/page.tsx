@@ -14,6 +14,7 @@ export default function HomePage() {
   const [roomsError, setRoomsError] = useState<string | null>(null);
   const [roomCreating, setRoomCreating] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
+  const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
 
   const fetchRooms = async () => {
     if (!user) return;
@@ -83,6 +84,39 @@ export default function HomePage() {
     }
 
     setRoomCreating(false);
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!session) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete room "${roomId}"? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeletingRoomId(roomId);
+
+    try {
+      const response = await fetch(`/api/deleteRoom?roomId=${encodeURIComponent(roomId)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Remove the room from the local state
+        setRooms((prev) => prev.filter((room) => room.roomId !== roomId));
+      } else {
+        alert(result.error || "Failed to delete room");
+      }
+    } catch (error) {
+      alert("Network error occurred while deleting room");
+    }
+
+    setDeletingRoomId(null);
   };
 
   if (loading) {
@@ -295,19 +329,69 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-foreground/10 flex gap-2">
-                    <Link
-                      href={`/host/${room.roomId}`}
-                      className="flex-1 px-3 py-2 text-sm text-center bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  <div className="mt-4 pt-3 border-t border-foreground/10 flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/host/${room.roomId}`}
+                        className="flex-1 px-3 py-2 text-sm text-center bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        Open Host View
+                      </Link>
+                      <Link
+                        href={`/room/${room.roomId}`}
+                        className="flex-1 px-3 py-2 text-sm text-center bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                      >
+                        Open Control View
+                      </Link>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteRoom(room.roomId)}
+                      disabled={deletingRoomId === room.roomId}
+                      className="w-full px-3 py-2 text-sm text-center bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      Open Host View
-                    </Link>
-                    <Link
-                      href={`/room/${room.roomId}`}
-                      className="flex-1 px-3 py-2 text-sm text-center bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
-                    >
-                      Open Control View
-                    </Link>
+                      {deletingRoomId === room.roomId ? (
+                        <>
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                          Delete Room
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               ))}

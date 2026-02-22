@@ -81,7 +81,7 @@ export default function IKRobotFrame({
   hideControlSliders?: boolean;
   hideExternalGoal?: boolean;
 }) {
-  const handPosition = useRef(new Vector3(0, 0, -0.3));
+  const handPosition = useRef(new Vector3(0, 0.2, -0.3));
   const handQuaternion = useRef(new Quaternion(0, 0, 0, 1));
   const handOtherValues = useRef({
     roll: 0,
