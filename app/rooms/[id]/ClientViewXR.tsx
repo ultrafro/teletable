@@ -170,7 +170,8 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
         let effectiveWidth = dims.width;
         // For stereo-left-right, the effective width is half (each eye gets half)
         if (stereoLayout === "stereo-left-right") {
-            //effectiveWidth = dims.width / 2;
+            console.log("[XRVideo] stereo-left-right", dims.width, dims.height);
+            effectiveWidth = dims.width / 2;
         }
 
         const aspectRatio = effectiveWidth / dims.height;

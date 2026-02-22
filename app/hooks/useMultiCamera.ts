@@ -216,6 +216,25 @@ export function useMultiCamera(): UseMultiCameraResult {
             };
 
             const attemptConstraints: MediaStreamConstraints[] = [
+              // First try: native resolution (no width/height constraints) - best for stereo cameras
+              {
+                video: {
+                  deviceId: { exact: deviceId },
+                  frameRate: { ideal: 30, max: 30 },
+                },
+                audio: false,
+              },
+              // Second try: high resolution that accommodates side-by-side stereo
+              {
+                video: {
+                  deviceId: { exact: deviceId },
+                  width: { ideal: 3840 },
+                  height: { ideal: 1080 },
+                  frameRate: { ideal: 30, max: 30 },
+                },
+                audio: false,
+              },
+              // Third try: standard HD
               {
                 video: {
                   deviceId: { exact: deviceId },
@@ -225,6 +244,7 @@ export function useMultiCamera(): UseMultiCameraResult {
                 },
                 audio: false,
               },
+              // Fourth try: lower resolution fallback
               {
                 video: {
                   deviceId: { exact: deviceId },
@@ -234,12 +254,14 @@ export function useMultiCamera(): UseMultiCameraResult {
                 },
                 audio: false,
               },
+              // Fifth try: minimal constraints
               {
                 video: {
                   deviceId: { exact: deviceId },
                 },
                 audio: false,
               },
+              // Last resort: non-exact device ID
               {
                 video: {
                   deviceId,

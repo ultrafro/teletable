@@ -38,6 +38,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   // Track stereo layout per camera
   const [stereoLayouts, setStereoLayouts] = useState<Map<string, StereoLayout>>(new Map());
+  // Track which camera is being previewed in fullscreen modal
+  const [fullscreenPreviewDeviceId, setFullscreenPreviewDeviceId] = useState<string | null>(null);
   // Initialize robot WebSocket connection
   const robotWS = useRobotWebSocket();
 
@@ -458,7 +460,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                             autoPlay
                             muted
                             playsInline
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
@@ -499,6 +501,29 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                           </select>
                         )}
                       </div>
+
+                      {/* Fullscreen Preview Button */}
+                      {hasStream && (
+                        <button
+                          onClick={() => setFullscreenPreviewDeviceId(device.deviceId)}
+                          className="p-2 bg-foreground/10 hover:bg-foreground/20 rounded transition-colors flex-shrink-0"
+                          title="Fullscreen preview"
+                        >
+                          <svg
+                            className="w-4 h-4 text-foreground/70"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                            />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -749,6 +774,48 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Video Preview Modal */}
+      {fullscreenPreviewDeviceId && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setFullscreenPreviewDeviceId(null)}
+        >
+          <button
+            onClick={() => setFullscreenPreviewDeviceId(null)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <svg
+              className="w-6 h-6 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <video
+            ref={(el) => {
+              if (!el) return;
+              const cameraStream = multiCamera.streams.get(fullscreenPreviewDeviceId);
+              if (cameraStream && el.srcObject !== cameraStream.stream) {
+                el.srcObject = cameraStream.stream;
+                void el.play().catch(() => {});
+              }
+            }}
+            autoPlay
+            muted
+            playsInline
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
