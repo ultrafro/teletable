@@ -12,7 +12,7 @@ import * as THREE from "three";
 import { calculateLocalXAngleDeg, calculateLocalZAngleDeg } from "./angleUtils";
 
 const LABEL_WIDTH = 128;
-const LABEL_HEIGHT = 64;
+const LABEL_HEIGHT = 88;
 
 /** Scale factor when adding touchpad axes to xyAccumulator per second */
 const TOUCHPAD_ACCUMULATOR_SENSITIVITY = 50;
@@ -20,7 +20,7 @@ const TOUCHPAD_ACCUMULATOR_SENSITIVITY = 50;
 
 
 
-function ControllerAngleLabel({ localXAngleDeg }: { localXAngleDeg: number }) {
+function ControllerAngleLabel({ localXAngleDeg, localZAngleDeg }: { localXAngleDeg: number; localZAngleDeg: number }) {
     const canvas = useMemo(() => {
         const c = document.createElement("canvas");
         c.width = LABEL_WIDTH;
@@ -46,19 +46,21 @@ function ControllerAngleLabel({ localXAngleDeg }: { localXAngleDeg: number }) {
         ctx.rect(0, 0, w, h);
         ctx.fill();
         ctx.stroke();
-        // text
+        // text: X angle on top, Z angle underneath
         ctx.fillStyle = "#fff";
-        ctx.font = "bold 24px system-ui, sans-serif";
+        ctx.font = "bold 20px system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(`X: ${localXAngleDeg.toFixed(1)}°`, w / 2, h / 2);
+        const lineHeight = 26;
+        ctx.fillText(`X: ${localXAngleDeg.toFixed(1)}°`, w / 2, h / 2 - lineHeight / 2);
+        ctx.fillText(`Z: ${localZAngleDeg.toFixed(1)}°`, w / 2, h / 2 + lineHeight / 2);
         texture.needsUpdate = true;
     });
 
     return (
         <group position={[0, 0.05 / 2 + 0.03, 0]}>
             <mesh>
-                <planeGeometry args={[0.12, 0.06]} />
+                <planeGeometry args={[0.12, 0.082]} />
                 <meshBasicMaterial
                     map={texture}
                     transparent
@@ -95,6 +97,7 @@ export function ReportController({
 
     const meshRef = useRef<Mesh>(null!);
     const [localXAngleDeg, setLocalXAngleDeg] = useState(0);
+    const [localZAngleDeg, setLocalZAngleDeg] = useState(0);
     const lastAngleUpdateTime = useRef(0);
 
     useEffect(() => {
@@ -159,11 +162,8 @@ export function ReportController({
 
 
 
-            const localXAngleDeg = calculateLocalXAngleDeg(thing.quaternion);
-            const localZAngleDeg = calculateLocalZAngleDeg(thing.quaternion);
-            setLocalXAngleDeg(localXAngleDeg);
-            //setLocalXAngleDeg(mesh.rotation.z);
-            //setLocalXAngleDeg(localZAngleDeg);
+            setLocalXAngleDeg(calculateLocalXAngleDeg(thing.quaternion));
+            setLocalZAngleDeg(calculateLocalZAngleDeg(thing.quaternion));
 
 
             // const euler = new Euler().setFromQuaternion(thing.quaternion);
@@ -185,7 +185,7 @@ export function ReportController({
                     <boxGeometry args={[0.05, 0.05, 0.05]} />
                     <meshBasicMaterial color={"blue"} />
                 </mesh>
-                <ControllerAngleLabel localXAngleDeg={localXAngleDeg} />
+                <ControllerAngleLabel localXAngleDeg={localXAngleDeg} localZAngleDeg={localZAngleDeg} />
             </XRSpace>
         </>
     );

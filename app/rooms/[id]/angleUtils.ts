@@ -12,14 +12,29 @@ export function calculateLocalXAngleDeg(worldQuaternion: Quaternion) {
     right.applyQuaternion(worldQuaternion);
     up.applyQuaternion(worldQuaternion);
 
-    //get forward projected onto Y-Z plane
-    const forwardProjected = (new Vector2(forward.z, forward.y)).normalize();
-    const globalForward = new Vector2(1, 0);
+    //get y component of forward vector
+    const forwardY = forward.y;
 
-    //calculate using atan2
-    const angle = Math.atan2(forwardProjected.y, forwardProjected.x);
+    //get magnitude of forward vector
+    const forwardMagnitude = forward.length();
+
+    //calculate angle
+    const angle = Math.asin(forwardY / forwardMagnitude);
+
     const angleDeg = angle * 180 / Math.PI;
     return angleDeg;
+
+
+
+
+    // //get forward projected onto Y-Z plane
+    // const forwardProjected = (new Vector2(forward.z, forward.y)).normalize();
+    // const globalForward = new Vector2(1, 0);
+
+    // //calculate using atan2
+    // const angle = Math.atan2(forwardProjected.y, forwardProjected.x);
+    // const angleDeg = angle * 180 / Math.PI;
+    // return angleDeg;
 
     // const angle = Math.acos(forwardProjected.dot(globalForward));
 
@@ -51,15 +66,23 @@ export function calculateLocalZAngleDeg(worldQuaternion: Quaternion) {
     const globalUp = new Vector3(0, 1, 0);
 
 
-
-    const forwardProjectedOntoUp = forward.clone().projectOnVector(globalUp);
-    const A = forward.clone().sub(forwardProjectedOntoUp).normalize();
-    const B = A.cross(globalUp);
-    const upProjectedOntoGlobalUp = up.dot(globalUp);
-    const upProjectedOntoGlobalB = up.dot(B);
-    const angle = Math.atan2(upProjectedOntoGlobalB, upProjectedOntoGlobalUp);
+    const p = globalUp.clone().cross(forward).normalize();
+    const d = up.dot(p);
+    const upMagnitude = up.length();
+    const angle = Math.asin(d / upMagnitude);
     const angleDeg = angle * 180 / Math.PI;
     return angleDeg;
+
+
+
+    // const forwardProjectedOntoUp = forward.clone().projectOnVector(globalUp);
+    // const A = forward.clone().sub(forwardProjectedOntoUp).normalize();
+    // const B = A.cross(globalUp);
+    // const upProjectedOntoGlobalUp = up.dot(globalUp);
+    // const upProjectedOntoGlobalB = up.dot(B);
+    // const angle = Math.atan2(upProjectedOntoGlobalB, upProjectedOntoGlobalUp);
+    // const angleDeg = angle * 180 / Math.PI;
+    // return angleDeg;
 
 
 

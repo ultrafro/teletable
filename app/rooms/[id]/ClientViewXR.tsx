@@ -29,6 +29,8 @@ const HANDLE_SIZE = 0.06;
 
 const TABLE_OFFSET = new Vector3(0, TABLE_LEG_HEIGHT + TABLE_HEIGHT / 2, -0.8);
 
+const useThumbstick = false;
+
 // Debug component that shows a green cube at left controller position
 function DebugLeftControllerCube({ targetRef }: { targetRef: React.RefObject<THREE.Object3D> }) {
     const meshRef = useRef<THREE.Mesh>(null);
@@ -290,8 +292,10 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion);
         mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion);
 
-        mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
-        mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
+        if(useThumbstick){
+            mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
+            mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
+        }
 
         // //find the left pitch. it's the relative "x" angle between the left controller and the table surface
         // const leftWorldQuaternion = leftController.quaternion.clone();
@@ -332,11 +336,13 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         // mobileGoal.current.right.pitch = -rightLocalEuler.x * 180 / Math.PI;
         // mobileGoal.current.right.roll = rightLocalEuler.z * 180 / Math.PI;
 
-        // mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion);
-        // mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion);
+        mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion);
+        mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion);
 
-        mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
-        mobileGoal.current.right.roll = -rightController.xyAccumulator.x;
+        if(useThumbstick){
+            mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
+            mobileGoal.current.right.roll = -rightController.xyAccumulator.x;    
+        }
 
 
         // mobileGoal.current.right.pitch = -rightLocalEuler.x;
