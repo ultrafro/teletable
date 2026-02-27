@@ -16,7 +16,7 @@ export default function DepthTestPage() {
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [modelLoadProgress, setModelLoadProgress] = useState(0);
   const [isModelReady, setIsModelReady] = useState(false);
-  const [depthScale, setDepthScale] = useState(1.0);
+  const [depthSize, setDepthSize] = useState(256); // 128-518 - actual model input size in pixels
   const [fps, setFps] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [colormap, setColormap] = useState<"grayscale" | "turbo">("grayscale");
@@ -31,8 +31,33 @@ export default function DepthTestPage() {
   const animationRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
-  const depthEstimatorRef = useRef<DepthEstimator | null>(null);
+  const depthModelRef = useRef<any>(null);
+  const depthProcessorRef = useRef<any>(null);
   const isProcessingRef = useRef(false);
+
+  // Refs for values that can change during streaming (avoids stale closures)
+  const depthSizeRef = useRef(depthSize);
+  const colormapRef = useRef(colormap);
+
+  // Keep refs in sync with state and update processor size
+  useEffect(() => {
+    depthSizeRef.current = depthSize;
+    // Update processor size when depth size changes
+    const processor = depthProcessorRef.current;
+    if (processor) {
+      if (processor.image_processor) {
+        processor.image_processor.size = { width: depthSize, height: depthSize };
+        console.log(`Updated processor.image_processor.size to ${depthSize}x${depthSize}`);
+      } else if (processor.feature_extractor) {
+        processor.feature_extractor.size = { width: depthSize, height: depthSize };
+        console.log(`Updated processor.feature_extractor.size to ${depthSize}x${depthSize}`);
+      }
+    }
+  }, [depthSize]);
+
+  useEffect(() => {
+    colormapRef.current = colormap;
+  }, [colormap]);
 
   // Check WebGPU support
   useEffect(() => {
@@ -84,29 +109,53 @@ export default function DepthTestPage() {
     setError(null);
 
     try {
-      const { pipeline, env } = await import("@huggingface/transformers");
+      const { AutoModel, AutoProcessor, env } = await import("@huggingface/transformers");
 
       // Configure for browser
       env.allowLocalModels = false;
       env.useBrowserCache = true;
 
       const device = useWebGPU && webGPUSupported ? "webgpu" : "wasm";
+      const model_id = "onnx-community/depth-anything-v2-small";
       console.log(`Loading Depth Anything v2 with device: ${device}`);
 
-      const estimator = await pipeline(
-        "depth-estimation",
-        "onnx-community/depth-anything-v2-small",
-        {
-          device,
-          progress_callback: (progress: any) => {
-            if (progress.status === "progress" && progress.progress) {
-              setModelLoadProgress(Math.round(progress.progress));
-            }
-          },
-        }
-      );
+      // Load model and processor separately so we can modify processor size
+      const model = await AutoModel.from_pretrained(model_id, {
+        device,
+        progress_callback: (progress: any) => {
+          if (progress.status === "progress" && progress.progress) {
+            setModelLoadProgress(Math.round(progress.progress * 0.8)); // 80% for model
+          }
+        },
+        session_options: { logSeverityLevel: 3 },
+      });
 
-      depthEstimatorRef.current = estimator;
+      const processor = await AutoProcessor.from_pretrained(model_id);
+      setModelLoadProgress(100);
+
+      // Log processor structure to understand it
+      console.log("Processor structure:", {
+        image_processor: processor.image_processor,
+        feature_extractor: processor.feature_extractor,
+        keys: Object.keys(processor),
+      });
+
+      // Set initial processor size based on depth size setting
+      const initialSize = depthSizeRef.current;
+      // The processor has image_processor as a direct property (getter)
+      if (processor.image_processor) {
+        processor.image_processor.size = { width: initialSize, height: initialSize };
+        console.log("Set processor.image_processor.size to:", initialSize);
+      } else if (processor.feature_extractor) {
+        processor.feature_extractor.size = { width: initialSize, height: initialSize };
+        console.log("Set processor.feature_extractor.size to:", initialSize);
+      } else {
+        console.warn("Could not find image_processor or feature_extractor on processor");
+      }
+      console.log("Initial size set to:", initialSize);
+
+      depthModelRef.current = model;
+      depthProcessorRef.current = processor;
       setIsModelReady(true);
       console.log("Depth Anything v2 model loaded successfully");
     } catch (err) {
@@ -193,7 +242,8 @@ export default function DepthTestPage() {
       !colorCanvasRef.current ||
       !depthCanvasRef.current ||
       !combinedCanvasRef.current ||
-      !depthEstimatorRef.current ||
+      !depthModelRef.current ||
+      !depthProcessorRef.current ||
       isProcessingRef.current
     ) {
       if (isStreaming && isModelReady) {
@@ -225,79 +275,79 @@ export default function DepthTestPage() {
 
       const width = video.videoWidth || 640;
       const height = video.videoHeight || 480;
+      const currentDepthSize = depthSizeRef.current;
+      const currentColormap = colormapRef.current;
 
-      // Set canvas sizes
-      colorCanvasRef.current.width = width;
-      colorCanvasRef.current.height = height;
-      depthCanvasRef.current.width = width;
-      depthCanvasRef.current.height = height;
-      combinedCanvasRef.current.width = width * 2;
-      combinedCanvasRef.current.height = height;
+      // Update canvas sizes if needed
+      const combinedWidth = width * 2;
+      if (combinedCanvasRef.current.width !== combinedWidth || combinedCanvasRef.current.height !== height) {
+        colorCanvasRef.current.width = width;
+        colorCanvasRef.current.height = height;
+        depthCanvasRef.current.width = width;
+        depthCanvasRef.current.height = height;
+        combinedCanvasRef.current.width = combinedWidth;
+        combinedCanvasRef.current.height = height;
+      }
 
-      // Draw color frame
+      // Draw frame to color canvas
       colorCtx.drawImage(video, 0, 0, width, height);
 
-      // Get image data URL for the model
-      const imageDataUrl = colorCanvasRef.current.toDataURL("image/jpeg", 0.8);
+      // Get image data for the model
+      const imageData = colorCtx.getImageData(0, 0, width, height);
+      const { RawImage } = await import("@huggingface/transformers");
+      const image = new RawImage(imageData.data, width, height, 4);
+
+      // Process with the processor (uses current feature_extractor.size)
+      const inputs = await depthProcessorRef.current(image);
 
       // Run depth estimation
-      const result = await depthEstimatorRef.current(imageDataUrl);
-
-      // Get depth map as RawImage
-      const depthImage = result.depth;
-
-      // Convert depth data to canvas
-      const depthWidth = depthImage.width;
-      const depthHeight = depthImage.height;
-      const depthData = depthImage.data;
-
-      // Create ImageData for depth visualization
-      const depthImageData = depthCtx.createImageData(depthWidth, depthHeight);
+      const { predicted_depth } = await depthModelRef.current(inputs);
+      const depthData = predicted_depth.data;
+      const [, depthHeight, depthWidth] = predicted_depth.dims;
 
       // Find min/max for normalization
       let minVal = Infinity;
       let maxVal = -Infinity;
       for (let i = 0; i < depthData.length; i++) {
-        minVal = Math.min(minVal, depthData[i]);
-        maxVal = Math.max(maxVal, depthData[i]);
+        const v = depthData[i];
+        if (v < minVal) minVal = v;
+        if (v > maxVal) maxVal = v;
       }
-
       const range = maxVal - minVal || 1;
+
+      // Create ImageData for depth visualization
+      const depthImageData = new Uint8ClampedArray(4 * depthData.length);
 
       // Apply colormap to depth data
       for (let i = 0; i < depthData.length; i++) {
-        let normalizedDepth = (depthData[i] - minVal) / range;
-        // Apply scale (gamma correction)
-        normalizedDepth = Math.pow(normalizedDepth, depthScale);
-
+        const normalizedDepth = (depthData[i] - minVal) / range;
         const pixelIdx = i * 4;
 
-        if (colormap === "grayscale") {
+        if (currentColormap === "grayscale") {
           const grayVal = Math.round(normalizedDepth * 255);
-          depthImageData.data[pixelIdx] = grayVal;
-          depthImageData.data[pixelIdx + 1] = grayVal;
-          depthImageData.data[pixelIdx + 2] = grayVal;
+          depthImageData[pixelIdx] = grayVal;
+          depthImageData[pixelIdx + 1] = grayVal;
+          depthImageData[pixelIdx + 2] = grayVal;
         } else {
           const [r, g, b] = applyTurboColormap(normalizedDepth);
-          depthImageData.data[pixelIdx] = r;
-          depthImageData.data[pixelIdx + 1] = g;
-          depthImageData.data[pixelIdx + 2] = b;
+          depthImageData[pixelIdx] = r;
+          depthImageData[pixelIdx + 1] = g;
+          depthImageData[pixelIdx + 2] = b;
         }
-        depthImageData.data[pixelIdx + 3] = 255;
+        depthImageData[pixelIdx + 3] = 255;
       }
 
-      // Draw depth to canvas (scaled to match video size)
+      // Draw depth visualization
+      const outImageData = new ImageData(depthImageData, depthWidth, depthHeight);
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = depthWidth;
       tempCanvas.height = depthHeight;
       const tempCtx = tempCanvas.getContext("2d")!;
-      tempCtx.putImageData(depthImageData, 0, 0);
-
-      // Scale depth to match video dimensions
+      tempCtx.putImageData(outImageData, 0, 0);
       depthCtx.drawImage(tempCanvas, 0, 0, width, height);
 
-      // Draw combined view (color left, depth right)
-      combinedCtx.drawImage(colorCanvasRef.current, 0, 0);
+      // Draw combined view: color on left, depth on right (both full size)
+      combinedCtx.drawImage(video, 0, 0, width, height);
       combinedCtx.drawImage(depthCanvasRef.current, width, 0);
 
       // Calculate FPS
@@ -317,7 +367,7 @@ export default function DepthTestPage() {
     if (isStreaming && isModelReady) {
       animationRef.current = requestAnimationFrame(processFrame);
     }
-  }, [isStreaming, isModelReady, depthScale, colormap]);
+  }, [isStreaming, isModelReady]);
 
   // Start/stop processing loop
   useEffect(() => {
@@ -436,18 +486,18 @@ export default function DepthTestPage() {
               </select>
             </div>
 
-            {/* Depth Scale */}
+            {/* Depth Size */}
             <div>
               <label className="block text-sm font-medium text-foreground/70 mb-2">
-                Depth Scale: {depthScale.toFixed(1)}
+                Depth Size: {depthSize}px
               </label>
               <input
                 type="range"
-                min="0.5"
-                max="2"
-                step="0.1"
-                value={depthScale}
-                onChange={(e) => setDepthScale(parseFloat(e.target.value))}
+                min="128"
+                max="518"
+                step="14"
+                value={depthSize}
+                onChange={(e) => setDepthSize(parseInt(e.target.value))}
                 className="w-full h-2 bg-foreground/20 rounded-lg appearance-none cursor-pointer"
               />
             </div>
@@ -572,9 +622,8 @@ export default function DepthTestPage() {
                 browser using WebGPU or WebAssembly.
               </p>
               <p>
-                <strong>Depth Scale:</strong> Adjusts the gamma of the depth
-                map. Lower values = more contrast for nearby objects, higher
-                values = more contrast for distant objects.
+                <strong>Depth Size:</strong> Controls the model&apos;s input resolution
+                (128-518px). Smaller = faster FPS, larger = better quality.
               </p>
               <p>
                 <strong>Colormap:</strong> Choose between grayscale (white =
