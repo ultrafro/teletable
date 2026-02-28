@@ -286,7 +286,7 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
                                 <XRLayer
                                     src={entry?.video}
                                     scale={scale}
-                                    layout={entry?.stereoLayout || "mono"}
+                                    layout={entry?.stereoLayout === "monodepth" ? "mono" : (entry?.stereoLayout || "mono")}
                                     onClick={() => entry?.video?.play()}
                                 />
                             </group>

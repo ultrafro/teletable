@@ -2,11 +2,13 @@ import Peer, { DataConnection, MediaConnection } from "peerjs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateFakeVideoStream } from "../rooms/[id]/generateFakeVideoStream";
 import { StereoLayout } from "../teletable.model";
+import { MonodepthLayoutMetadata } from "./useMonodepthStream";
 
 export interface CameraStreamInfo {
   stream: MediaStream;
   label: string;
   stereoLayout: StereoLayout;
+  monodepthLayout?: MonodepthLayoutMetadata; // Layout metadata for monodepth streams
 }
 
 export interface UsePeerResult {
@@ -16,9 +18,9 @@ export interface UsePeerResult {
   // Switch a specific camera stream (replaces track in existing connection)
   switchStream: (cameraId: string, stream: MediaStream) => void;
   // Add a camera stream for broadcast to all connected clients
-  addCameraStream: (cameraId: string, stream: MediaStream, label: string, stereoLayout?: StereoLayout) => void;
-  // Update stereo layout for a camera stream
-  updateStereoLayout: (cameraId: string, stereoLayout: StereoLayout) => void;
+  addCameraStream: (cameraId: string, stream: MediaStream, label: string, stereoLayout?: StereoLayout, monodepthLayout?: MonodepthLayoutMetadata) => void;
+  // Update stereo layout and monodepth metadata for a camera stream
+  updateStereoLayout: (cameraId: string, stereoLayout: StereoLayout, monodepthLayout?: MonodepthLayoutMetadata) => void;
   // Remove a camera stream from broadcast
   removeCameraStream: (cameraId: string) => void;
   // Get list of broadcast camera IDs
@@ -159,7 +161,12 @@ export function usePeer(
       for (const [cameraId, cameraInfo] of streams.entries()) {
         console.log(`Calling client ${clientPeerId} with camera: ${cameraId} (${cameraInfo.label}) stereo: ${cameraInfo.stereoLayout}`);
         const outgoingCall = peer.call(clientPeerId, cameraInfo.stream, {
-          metadata: { cameraId, label: cameraInfo.label, stereoLayout: cameraInfo.stereoLayout }
+          metadata: {
+            cameraId,
+            label: cameraInfo.label,
+            stereoLayout: cameraInfo.stereoLayout,
+            monodepthLayout: cameraInfo.monodepthLayout
+          }
         });
 
         // Store this connection
@@ -223,11 +230,11 @@ export function usePeer(
 
   // Add a new camera stream for broadcast
   const addCameraStream = useCallback(
-    (cameraId: string, stream: MediaStream, label: string, stereoLayout: StereoLayout = "mono") => {
+    (cameraId: string, stream: MediaStream, label: string, stereoLayout: StereoLayout = "mono", monodepthLayout?: MonodepthLayoutMetadata) => {
       console.log(`Adding camera stream: ${cameraId} (${label}) stereo: ${stereoLayout}`);
 
       // Store the stream
-      localStreams.current.set(cameraId, { stream, label, stereoLayout });
+      localStreams.current.set(cameraId, { stream, label, stereoLayout, monodepthLayout });
 
       // Call all connected clients with this new camera stream
       if (peer) {
@@ -236,7 +243,7 @@ export function usePeer(
           if (!cameraMap.has(cameraId)) {
             console.log(`Calling client ${clientPeerId} with new camera: ${cameraId}`);
             const call = peer.call(clientPeerId, stream, {
-              metadata: { cameraId, label, stereoLayout }
+              metadata: { cameraId, label, stereoLayout, monodepthLayout }
             });
 
             cameraMap.set(cameraId, call);
@@ -288,7 +295,7 @@ export function usePeer(
 
   // Update stereo layout for a camera stream (requires reconnecting to clients)
   const updateStereoLayout = useCallback(
-    (cameraId: string, stereoLayout: StereoLayout) => {
+    (cameraId: string, stereoLayout: StereoLayout, monodepthLayout?: MonodepthLayoutMetadata) => {
       const existing = localStreams.current.get(cameraId);
       if (!existing) {
         console.warn(`Cannot update stereo layout: camera ${cameraId} not found`);
@@ -296,7 +303,7 @@ export function usePeer(
       }
 
       console.log(`Updating stereo layout for camera ${cameraId} to ${stereoLayout}`);
-      localStreams.current.set(cameraId, { ...existing, stereoLayout });
+      localStreams.current.set(cameraId, { ...existing, stereoLayout, monodepthLayout });
 
       // Note: To propagate the new layout to clients, we need to close and reopen connections
       // For now, clients will need to reconnect to get the new layout

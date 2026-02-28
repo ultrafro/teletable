@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useMultiCamera, CameraStream } from "@/app/hooks/useMultiCamera";
 import { RoomData } from "./roomUI.model";
@@ -22,6 +24,7 @@ import { useInviteLink } from "./useInviteLink";
 import { usePeer } from "@/app/hooks/usePeer";
 import { useIsVideoCallConnected } from "./useIsVideoCallConnected";
 import { useAutoApproveRequestWithPassword, useMakeRoomReadyOnLoad, useResetRoomWhenHostDisconnects, useUpdateHostPeerIdWhenItChanges } from "./HostView.hooks";
+import { useMonodepthStream } from "@/app/hooks/useMonodepthStream";
 
 export default function HostView({ roomData }: { roomData: RoomData }) {
   const { user, session } = useAuth();
@@ -42,6 +45,18 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
   const [fullscreenPreviewDeviceId, setFullscreenPreviewDeviceId] = useState<string | null>(null);
   // Initialize robot WebSocket connection
   const robotWS = useRobotWebSocket();
+
+  // Monodepth processing
+  const monodepth = useMonodepthStream({
+    depthSize: 256,
+    depthScale: 0.25,
+    colormap: "grayscale",
+    targetFps: 60,
+  });
+  // Track which cameras are using monodepth processing
+  const [monodepthCameraIds, setMonodepthCameraIds] = useState<Set<string>>(new Set());
+  // Track processed streams for monodepth cameras
+  const processedStreamsRef = useRef<Map<string, MediaStream>>(new Map());
 
 
 
@@ -121,22 +136,26 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
 
     // Add new streams that are enabled but not yet broadcasting
     for (const cameraStream of enabledStreams) {
+      // Use processed stream if monodepth is active for this camera
+      const streamToUse = processedStreamsRef.current.get(cameraStream.deviceId) || cameraStream.stream;
+      const layout = stereoLayouts.get(cameraStream.deviceId) || "mono";
+      const layoutMetadata = layout === "monodepth" ? monodepth.layoutMetadata || undefined : undefined;
+
       if (!currentBroadcastIds.has(cameraStream.deviceId)) {
-        const layout = stereoLayouts.get(cameraStream.deviceId) || "mono";
         console.log("[HostCamSync] add", cameraStream.deviceId, cameraStream.label, "stereo:", layout);
-        peer.addCameraStream(cameraStream.deviceId, cameraStream.stream, cameraStream.label, layout);
+        peer.addCameraStream(cameraStream.deviceId, streamToUse, cameraStream.label, layout, layoutMetadata);
         lastBroadcastTrackIdsRef.current.set(
           cameraStream.deviceId,
-          cameraStream.stream.getVideoTracks()[0]?.id || null
+          streamToUse.getVideoTracks()[0]?.id || null
         );
       } else {
         // Only switch tracks when the underlying video track changes. Replacing every render
         // causes visible flicker on clients.
-        const nextTrackId = cameraStream.stream.getVideoTracks()[0]?.id || null;
+        const nextTrackId = streamToUse.getVideoTracks()[0]?.id || null;
         const lastTrackId = lastBroadcastTrackIdsRef.current.get(cameraStream.deviceId) || null;
         if (nextTrackId && nextTrackId !== lastTrackId) {
           console.log("[HostCamSync] switch", cameraStream.deviceId, cameraStream.label);
-          peer.switchStream(cameraStream.deviceId, cameraStream.stream);
+          peer.switchStream(cameraStream.deviceId, streamToUse);
           lastBroadcastTrackIdsRef.current.set(cameraStream.deviceId, nextTrackId);
         }
       }
@@ -148,33 +167,103 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
         console.log("[HostCamSync] remove", cameraId);
         peer.removeCameraStream(cameraId);
         lastBroadcastTrackIdsRef.current.delete(cameraId);
+        // Also cleanup processed streams
+        processedStreamsRef.current.delete(cameraId);
       }
     }
   }, [multiCamera.streams, multiCamera.enabledCameraIds, peer.peer, stereoLayouts]);
 
   // Handler to update stereo layout for a camera
-  const handleStereoLayoutChange = useCallback((deviceId: string, layout: StereoLayout) => {
+  const handleStereoLayoutChange = useCallback(async (deviceId: string, layout: StereoLayout) => {
     setStereoLayouts(prev => {
       const next = new Map(prev);
       next.set(deviceId, layout);
       return next;
     });
-    // Update the peer's stored layout (clients will get it on reconnect)
-    peer.updateStereoLayout(deviceId, layout);
-  }, [peer]);
+
+    const cameraStream = multiCamera.streams.get(deviceId);
+    if (!cameraStream) {
+      return;
+    }
+
+    if (layout === "monodepth") {
+      // Load model if not ready
+      if (!monodepth.isModelReady && !monodepth.isModelLoading) {
+        const loaded = await monodepth.loadModel();
+        if (!loaded) {
+          console.error("[HostView] Failed to load monodepth model");
+          // Revert to mono layout
+          setStereoLayouts(prev => {
+            const next = new Map(prev);
+            next.set(deviceId, "mono");
+            return next;
+          });
+          return;
+        }
+      }
+
+      // Wait for model to be ready
+      if (monodepth.isModelLoading) {
+        // Model is loading, wait for it
+        const checkReady = () => {
+          return new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+              if (monodepth.isModelReady) {
+                clearInterval(interval);
+                resolve();
+              }
+            }, 100);
+          });
+        };
+        await checkReady();
+      }
+
+      // Process the camera stream
+      const processedStream = monodepth.startProcessing(cameraStream.stream);
+      if (processedStream) {
+        processedStreamsRef.current.set(deviceId, processedStream);
+        setMonodepthCameraIds(prev => new Set([...prev, deviceId]));
+        // Switch to processed stream with layout metadata
+        peer.switchStream(deviceId, processedStream);
+        peer.updateStereoLayout(deviceId, layout, monodepth.layoutMetadata || undefined);
+      }
+    } else {
+      // If switching away from monodepth, stop processing and use raw stream
+      if (monodepthCameraIds.has(deviceId)) {
+        processedStreamsRef.current.delete(deviceId);
+        setMonodepthCameraIds(prev => {
+          const next = new Set(prev);
+          next.delete(deviceId);
+          return next;
+        });
+        // Switch back to raw stream
+        peer.switchStream(deviceId, cameraStream.stream);
+      }
+      // Update the peer's stored layout (clients will get it on reconnect), no monodepth metadata
+      peer.updateStereoLayout(deviceId, layout, undefined);
+    }
+  }, [peer, multiCamera.streams, monodepth, monodepthCameraIds]);
 
   // Update video preview elements when streams change
   useEffect(() => {
     multiCamera.streams.forEach((cameraStream, deviceId) => {
       const videoEl = videoRefs.current.get(deviceId);
-      if (videoEl && videoEl.srcObject !== cameraStream.stream) {
-        videoEl.srcObject = cameraStream.stream;
+      if (!videoEl) return;
+
+      // Use processed stream if monodepth is active, otherwise use raw stream
+      const isMonodepth = stereoLayouts.get(deviceId) === "monodepth";
+      const streamToShow = isMonodepth
+        ? (processedStreamsRef.current.get(deviceId) || cameraStream.stream)
+        : cameraStream.stream;
+
+      if (streamToShow && videoEl.srcObject !== streamToShow) {
+        videoEl.srcObject = streamToShow;
         void videoEl.play().catch(() => {
           // Ignore autoplay rejections for muted inline previews.
         });
       }
     });
-  }, [multiCamera.streams]);
+  }, [multiCamera.streams, stereoLayouts, monodepthCameraIds]);
 
   // Create an adapter for useHostActions that expects UseCameraResult
   const cameraAdapter = useMemo(() => ({
@@ -440,7 +529,7 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                       </label>
 
                       {/* Video Preview */}
-                      <div className="w-[100px] h-[75px] bg-foreground/5 rounded overflow-hidden flex-shrink-0 border border-foreground/10">
+                      <div className={`${stereoLayouts.get(device.deviceId) === "monodepth" ? "w-[125px]" : "w-[100px]"} h-[75px] bg-foreground/5 rounded overflow-hidden flex-shrink-0 border border-foreground/10`}>
                         {hasStream ? (
                           <video
                             ref={(el) => {
@@ -450,8 +539,13 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                               }
 
                               videoRefs.current.set(device.deviceId, el);
-                              if (cameraStream && el.srcObject !== cameraStream.stream) {
-                                el.srcObject = cameraStream.stream;
+                              // Use processed stream if monodepth is active, otherwise use raw stream
+                              const isMonodepth = stereoLayouts.get(device.deviceId) === "monodepth";
+                              const streamToShow = isMonodepth
+                                ? (processedStreamsRef.current.get(device.deviceId) || cameraStream?.stream)
+                                : cameraStream?.stream;
+                              if (streamToShow && el.srcObject !== streamToShow) {
+                                el.srcObject = streamToShow;
                                 void el.play().catch(() => {
                                   // Ignore autoplay rejections for muted inline previews.
                                 });
@@ -488,16 +582,25 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                         </p>
                         <p className="text-xs text-foreground/50">
                           {isEnabled ? (hasStream ? "Broadcasting" : "Starting...") : "Not broadcasting"}
+                          {stereoLayouts.get(device.deviceId) === "monodepth" && monodepth.isProcessing && (
+                            <span className="ml-2 text-green-600">{monodepth.fps} FPS</span>
+                          )}
                         </p>
                         {isEnabled && hasStream && (
                           <select
                             value={stereoLayouts.get(device.deviceId) || "mono"}
                             onChange={(e) => handleStereoLayoutChange(device.deviceId, e.target.value as StereoLayout)}
-                            className="mt-1 w-full px-2 py-1 bg-background border border-foreground/20 rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            disabled={monodepth.isModelLoading}
+                            className="mt-1 w-full px-2 py-1 bg-background border border-foreground/20 rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
                           >
                             <option value="mono">Mono</option>
                             <option value="stereo-left-right">Stereo (Side-by-Side)</option>
                             <option value="stereo-top-bottom">Stereo (Top-Bottom)</option>
+                            <option value="monodepth">
+                              {monodepth.isModelLoading
+                                ? `Monodepth (Loading ${monodepth.modelLoadProgress}%)`
+                                : "Monodepth (Color+Depth)"}
+                            </option>
                           </select>
                         )}
                       </div>
@@ -533,6 +636,24 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
             {multiCamera.error && (
               <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded-lg text-red-700 text-xs">
                 <strong>Camera Error:</strong> {multiCamera.error}
+              </div>
+            )}
+
+            {monodepth.error && (
+              <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded-lg text-red-700 text-xs">
+                <strong>Depth Model Error:</strong> {monodepth.error}
+              </div>
+            )}
+
+            {monodepth.isModelLoading && (
+              <div className="mt-2 p-2 bg-blue-100 border border-blue-300 rounded-lg text-blue-700 text-xs">
+                <strong>Loading Depth Model:</strong> {monodepth.modelLoadProgress}%
+                <div className="w-full bg-blue-200 rounded-full h-1.5 mt-1">
+                  <div
+                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                    style={{ width: `${monodepth.modelLoadProgress}%` }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -803,8 +924,13 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
             ref={(el) => {
               if (!el) return;
               const cameraStream = multiCamera.streams.get(fullscreenPreviewDeviceId);
-              if (cameraStream && el.srcObject !== cameraStream.stream) {
-                el.srcObject = cameraStream.stream;
+              // Use processed stream if monodepth is active
+              const isMonodepth = stereoLayouts.get(fullscreenPreviewDeviceId) === "monodepth";
+              const streamToShow = isMonodepth
+                ? (processedStreamsRef.current.get(fullscreenPreviewDeviceId) || cameraStream?.stream)
+                : cameraStream?.stream;
+              if (streamToShow && el.srcObject !== streamToShow) {
+                el.srcObject = streamToShow;
                 void el.play().catch(() => {});
               }
             }}
