@@ -1,7 +1,9 @@
 import RobotVisualizer from "@/app/RobotVisualizer";
 import { DataFrame } from "@/app/teletable.model";
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import { RemoteCameraStream } from "./useMultiVideoCallConnectionClientside";
+import { Canvas } from "@react-three/fiber";
+import { MonodepthViewer3DWithStream } from "@/app/components/MonodepthViewer3D";
 
 export function ClientViewDesktop({
   isInControl,
@@ -128,9 +130,15 @@ function SingleCameraView({
   cameraStream: RemoteCameraStream;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [show3D, setShow3D] = useState(false);
+  const [depthScale, setDepthScale] = useState(1);
+  const [viewScale, setViewScale] = useState(1);
+
+  const isMonodepth = cameraStream.stereoLayout === "monodepth" && cameraStream.monodepthLayout;
 
   useEffect(() => {
     console.log("Camera stream changed for:", cameraStream.label, cameraStream.stream);
+    console.log("  stereoLayout:", cameraStream.stereoLayout, "monodepthLayout:", cameraStream.monodepthLayout);
     if (videoRef.current && cameraStream.stream) {
       videoRef.current.srcObject = cameraStream.stream;
     }
@@ -140,7 +148,11 @@ function SingleCameraView({
     ? null
     : cameraStream.stereoLayout === "stereo-left-right"
       ? "Stereo LR"
-      : "Stereo TB";
+      : cameraStream.stereoLayout === "stereo-top-bottom"
+        ? "Stereo TB"
+        : cameraStream.stereoLayout === "monodepth"
+          ? "Monodepth"
+          : null;
 
   return (
     <div className="bg-background rounded-lg border border-foreground/10 overflow-hidden">
@@ -154,18 +166,84 @@ function SingleCameraView({
           )}
         </div>
         <div className="flex items-center space-x-2">
+          {isMonodepth && (
+            <button
+              onClick={() => setShow3D(!show3D)}
+              className={`text-xs px-2 py-1 rounded transition-colors ${
+                show3D
+                  ? "bg-blue-600 text-white"
+                  : "bg-foreground/10 text-foreground hover:bg-foreground/20"
+              }`}
+            >
+              {show3D ? "3D View" : "2D View"}
+            </button>
+          )}
           <div className="w-2 h-2 rounded-full bg-green-500"></div>
           <span className="text-xs text-foreground/70">Active</span>
         </div>
       </div>
-      <div className="aspect-video">
+
+      {/* 3D Controls - only show when in 3D mode */}
+      {isMonodepth && show3D && (
+        <div className="px-3 py-2 bg-foreground/5 border-b border-foreground/10 space-y-2">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-foreground/70 w-20">Depth Scale</span>
+            <input
+              type="range"
+              min="0.1"
+              max="3"
+              step="0.1"
+              value={depthScale}
+              onChange={(e) => setDepthScale(parseFloat(e.target.value))}
+              className="flex-1 h-1 bg-foreground/20 rounded-lg appearance-none cursor-pointer"
+            />
+            <span className="text-xs text-foreground w-8">{depthScale.toFixed(1)}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-foreground/70 w-20">View Scale</span>
+            <input
+              type="range"
+              min="0.5"
+              max="3"
+              step="0.1"
+              value={viewScale}
+              onChange={(e) => setViewScale(parseFloat(e.target.value))}
+              className="flex-1 h-1 bg-foreground/20 rounded-lg appearance-none cursor-pointer"
+            />
+            <span className="text-xs text-foreground w-8">{viewScale.toFixed(1)}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="aspect-video relative">
+        {/* Always render video (hidden when showing 3D) */}
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted={true}
-          className="w-full h-full object-cover"
+          className={`w-full h-full object-cover ${show3D && isMonodepth ? "hidden" : ""}`}
         />
+
+        {/* 3D View overlay for monodepth streams */}
+        {isMonodepth && show3D && cameraStream.monodepthLayout && (
+          <div className="absolute inset-0 bg-black">
+            <Canvas
+              camera={{ position: [0, 0, 2], fov: 50 }}
+              gl={{ antialias: true, alpha: true }}
+            >
+              <ambientLight intensity={0.5} />
+              <MonodepthViewer3DWithStream
+                stream={cameraStream.stream}
+                layout={cameraStream.monodepthLayout}
+                scale={viewScale}
+                position={[0, 0, 0]}
+                resolution={128}
+                depthScale={depthScale}
+              />
+            </Canvas>
+          </div>
+        )}
       </div>
     </div>
   );

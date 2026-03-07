@@ -29,6 +29,8 @@ import ControlPointVisualizer from "./ControlPointVisualizer";
 import { Vector3 } from "three";
 import IKRobotFrame from "./IKRobotFrame";
 import Compass from "./Compass";
+import { MonodepthViewer3DWithStream } from "./components/MonodepthViewer3D";
+import { MonodepthLayoutMetadata } from "./hooks/useMonodepthStream";
 
 const X_CAMERA_OFFSET = -0.5;
 
@@ -79,12 +81,20 @@ export default function RobotVisualizer({
   onJointValuesUpdate,
   mobileGoal,
   focusedRobot,
+  monodepthStream,
+  monodepthLayout,
+  monodepthDepthScale = 1,
+  monodepthViewScale = 1,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   controlMode: RobotVisualizerControlMode;
   onJointValuesUpdate?: (robotId: string, jointValues: number[]) => void;
   mobileGoal?: MobileGoal;
   focusedRobot?: string | null;
+  monodepthStream?: MediaStream | null;
+  monodepthLayout?: MonodepthLayoutMetadata | null;
+  monodepthDepthScale?: number;
+  monodepthViewScale?: number;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -124,6 +134,10 @@ export default function RobotVisualizer({
           onJointValuesUpdate={onJointValuesUpdate}
           mobileGoal={mobileGoal}
           focusedRobot={focusedRobot}
+          monodepthStream={monodepthStream}
+          monodepthLayout={monodepthLayout}
+          monodepthDepthScale={monodepthDepthScale}
+          monodepthViewScale={monodepthViewScale}
         />
       </Canvas>
     </div>
@@ -180,6 +194,10 @@ function RobotVisualizerCore({
   hideCompass,
   hideControlSliders,
   hideExternalGoal,
+  monodepthStream,
+  monodepthLayout,
+  monodepthDepthScale = 1,
+  monodepthViewScale = 1,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   controlMode: RobotVisualizerControlMode;
@@ -190,6 +208,10 @@ function RobotVisualizerCore({
   hideCompass?: boolean;
   hideControlSliders?: boolean;
   hideExternalGoal?: boolean;
+  monodepthStream?: MediaStream | null;
+  monodepthLayout?: MonodepthLayoutMetadata | null;
+  monodepthDepthScale?: number;
+  monodepthViewScale?: number;
 }) {
   return (
     <>
@@ -252,6 +274,18 @@ function RobotVisualizerCore({
       />
 
       <OrbitControlsWithTarget focusedRobot={focusedRobot} />
+
+      {/* Monodepth 3D mesh - positioned behind the robots */}
+      {monodepthStream && monodepthLayout && (
+        <MonodepthViewer3DWithStream
+          stream={monodepthStream}
+          layout={monodepthLayout}
+          position={[0, 1, -2]}
+          scale={monodepthViewScale}
+          resolution={128}
+          depthScale={monodepthDepthScale}
+        />
+      )}
     </>
   )
 }

@@ -57,6 +57,9 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
   const [monodepthCameraIds, setMonodepthCameraIds] = useState<Set<string>>(new Set());
   // Track processed streams for monodepth cameras
   const processedStreamsRef = useRef<Map<string, MediaStream>>(new Map());
+  // Depth and view scale for 3D preview in RobotVisualizer
+  const [depthScale, setDepthScale] = useState(1);
+  const [viewScale, setViewScale] = useState(1);
 
 
 
@@ -329,6 +332,15 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 !isTestControlEnabled ? "DirectJoints" : "WidgetGoal"
               }
               onJointValuesUpdate={robotWS.sendJointValuesToRobot}
+              monodepthStream={
+                // Get the first monodepth camera's processed stream
+                Array.from(monodepthCameraIds).length > 0
+                  ? processedStreamsRef.current.get(Array.from(monodepthCameraIds)[0]) || null
+                  : null
+              }
+              monodepthLayout={monodepth.layoutMetadata}
+              monodepthDepthScale={depthScale}
+              monodepthViewScale={viewScale}
             />
           </div>
         </div>
@@ -656,6 +668,39 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
                 </div>
               </div>
             )}
+
+            {/* 3D View Controls - shown when monodepth is active */}
+            {monodepthCameraIds.size > 0 && monodepth.isProcessing && (
+              <div className="mt-3 p-3 bg-foreground/5 rounded-lg border border-foreground/10 space-y-2">
+                <p className="text-xs font-medium text-foreground">3D View Controls</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-foreground/70 w-16">Depth</span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.1"
+                    value={depthScale}
+                    onChange={(e) => setDepthScale(parseFloat(e.target.value))}
+                    className="flex-1 h-1 bg-foreground/20 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-foreground w-8">{depthScale.toFixed(1)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-foreground/70 w-16">Scale</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="3"
+                    step="0.1"
+                    value={viewScale}
+                    onChange={(e) => setViewScale(parseFloat(e.target.value))}
+                    className="flex-1 h-1 bg-foreground/20 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-foreground w-8">{viewScale.toFixed(1)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Connection Status Section */}
@@ -924,7 +969,6 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
             ref={(el) => {
               if (!el) return;
               const cameraStream = multiCamera.streams.get(fullscreenPreviewDeviceId);
-              // Use processed stream if monodepth is active
               const isMonodepth = stereoLayouts.get(fullscreenPreviewDeviceId) === "monodepth";
               const streamToShow = isMonodepth
                 ? (processedStreamsRef.current.get(fullscreenPreviewDeviceId) || cameraStream?.stream)

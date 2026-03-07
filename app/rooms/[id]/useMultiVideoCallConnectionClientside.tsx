@@ -1,4 +1,5 @@
 import { UsePeerResult } from "@/app/hooks/usePeer";
+import { MonodepthLayoutMetadata } from "@/app/hooks/useMonodepthStream";
 import { StereoLayout } from "@/app/teletable.model";
 import { MediaConnection } from "peerjs";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -8,6 +9,7 @@ export interface RemoteCameraStream {
   label: string;
   stream: MediaStream;
   stereoLayout: StereoLayout;
+  monodepthLayout?: MonodepthLayoutMetadata;
 }
 
 interface IncomingCallInfo {
@@ -16,6 +18,7 @@ interface IncomingCallInfo {
   label: string;
   stream: MediaStream | null;
   stereoLayout: StereoLayout;
+  monodepthLayout?: MonodepthLayoutMetadata;
 }
 
 export function useMultiVideoCallConnectionClientside(
@@ -70,6 +73,7 @@ export function useMultiVideoCallConnectionClientside(
           label: callInfo.label,
           stream: callInfo.stream,
           stereoLayout: callInfo.stereoLayout,
+          monodepthLayout: callInfo.monodepthLayout,
         });
       }
     });
@@ -79,13 +83,20 @@ export function useMultiVideoCallConnectionClientside(
   // Handle an incoming call from the host
   const handleIncomingCall = useCallback(
     (call: MediaConnection) => {
-      const metadata = call.metadata as { cameraId?: string; label?: string; stereoLayout?: StereoLayout };
+      const metadata = call.metadata as {
+        cameraId?: string;
+        label?: string;
+        stereoLayout?: StereoLayout;
+        monodepthLayout?: MonodepthLayoutMetadata;
+      };
       const cameraId = metadata?.cameraId || call.connectionId;
       const label = metadata?.label || "Unknown Camera";
       const stereoLayout = metadata?.stereoLayout || "mono";
+      const monodepthLayout = metadata?.monodepthLayout;
 
       console.log(
-        `[MultiCam Client] Incoming call for camera: ${cameraId} (${label}) stereo: ${stereoLayout}`
+        `[MultiCam Client] Incoming call for camera: ${cameraId} (${label}) stereo: ${stereoLayout}`,
+        monodepthLayout ? `monodepth: ${JSON.stringify(monodepthLayout)}` : ""
       );
 
       // Store call info
@@ -95,6 +106,7 @@ export function useMultiVideoCallConnectionClientside(
         label,
         stream: null,
         stereoLayout,
+        monodepthLayout,
       };
       incomingCallsRef.current.set(cameraId, callInfo);
 
