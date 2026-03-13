@@ -23,6 +23,7 @@
     "closed-chain-ik": "^0.0.3",
     "nanoid": "^5.1.5",
     "next": "15.5.9",
+    "onnxruntime-web": "^1.17.0",
     "peerjs": "^1.5.5",
     "react": "19.2",
     "react-dom": "19.2",

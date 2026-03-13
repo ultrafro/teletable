@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@source not "../public/models";
+@source not "../scripts/onnx_export";
 
 :root {
   --background: #ffffff;
