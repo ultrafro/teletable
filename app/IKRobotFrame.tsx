@@ -65,23 +65,28 @@ export default function IKRobotFrame({
   currentState,
   handId,
   basePosition,
+  baseRotation,
 
   onJointValuesUpdate,
   controlMode,
   externalGoal,
   hideControlSliders,
   hideExternalGoal,
+  isFlipped,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   handId: string;
   basePosition: Vector3;
+  baseRotation?: [number, number, number];
   onJointValuesUpdate?: (robotId: string, jointValues: number[]) => void;
   controlMode: RobotVisualizerControlMode;
   externalGoal?: ExternalGoal;
   hideControlSliders?: boolean;
   hideExternalGoal?: boolean;
+  isFlipped?: boolean;
 }) {
-  const handPosition = useRef(new Vector3(0, 0.2, -0.3));
+  //const handPosition = useRef(new Vector3(0, 0.2, -0.3));
+  const handPosition = useRef(new Vector3(basePosition.x, basePosition.y + (isFlipped ? -0.2 : 0.2), basePosition.z - 0.3));
   const handQuaternion = useRef(new Quaternion(0, 0, 0, 1));
   const handOtherValues = useRef({
     roll: 0,
@@ -97,44 +102,60 @@ export default function IKRobotFrame({
   }, [externalGoal]);
 
   return (
-    <group position={basePosition}>
-      <IKRobotComponent
-        //basePostion={basePosition}
-        goalPosition={handPosition.current}
-        goalOtherValues={handOtherValues.current}
-        onJointValuesUpdate={(jointValues) => {
-          //copy into currentState.joints
-          for (let i = 0; i < jointValues.length; i++) {
-            if (!currentState.current[handId]) {
-              currentState.current[handId] = {
-                joints: [],
-                type: "SO101",
-              };
+    <>
+      <group position={basePosition} rotation={baseRotation}>
+        <IKRobotComponent
+          //basePostion={basePosition}
+          goalPosition={handPosition.current}
+          goalOtherValues={handOtherValues.current}
+          isFlipped={isFlipped}
+          onJointValuesUpdate={(jointValues) => {
+            //copy into currentState.joints
+            for (let i = 0; i < jointValues.length; i++) {
+              if (!currentState.current[handId]) {
+                currentState.current[handId] = {
+                  joints: [],
+                  type: "SO101",
+                };
+              }
+              if (!currentState.current[handId].joints) {
+                currentState.current[handId].joints = [];
+              }
+              currentState.current[handId].joints[i] = jointValues[i];
             }
-            if (!currentState.current[handId].joints) {
-              currentState.current[handId].joints = [];
+
+
+            if (controlMode === "DirectJoints") {
+              return;
             }
-            currentState.current[handId].joints[i] = jointValues[i];
-          }
+
+            //console.log("Joint values for", handId, ":", jointValues);
+            onJointValuesUpdate?.(handId, jointValues);
+          }}
+          useDirectValues={controlMode === "DirectJoints" || false}
+          currentState={currentState}
+          handId={handId}
+        />
+        {/* <ControlPointVisualizer handData={handData} color="#ef4444" /> */}
 
 
-          if (controlMode === "DirectJoints") {
-            return;
-          }
 
-          //console.log("Joint values for", handId, ":", jointValues);
-          onJointValuesUpdate?.(handId, jointValues);
-        }}
-        useDirectValues={controlMode === "DirectJoints" || false}
-        currentState={currentState}
-        handId={handId}
-      />
-      {/* <ControlPointVisualizer handData={handData} color="#ef4444" /> */}
+        {controlMode === "ExternalGoal" && externalGoal && !hideExternalGoal && (
+          <>
+            <ExternalGoalVisualizer goal={externalGoal} />
+          </>
+        )}
+
+
+
+
+      </group>
 
       {controlMode === "WidgetGoal" && (
         <ControlPointVisualizer
           position={handPosition.current}
-          //basePosition={basePosition}
+          basePosition={basePosition}
+          baseRotation={baseRotation || [0, 0, 0]}
           otherValues={handOtherValues.current}
           handId={handId}
           offset={basePosition}
@@ -143,11 +164,6 @@ export default function IKRobotFrame({
         />
       )}
 
-      {controlMode === "ExternalGoal" && externalGoal && !hideExternalGoal && (
-        <>
-          <ExternalGoalVisualizer goal={externalGoal} />
-        </>
-      )}
-    </group>
+    </>
   );
 }

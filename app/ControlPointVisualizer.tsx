@@ -23,7 +23,8 @@ import ControlSliders from "./ControlSliders";
 
 export default function ControlPointVisualizer({
   position,
-  // basePosition,
+  basePosition,
+  baseRotation,
   otherValues,
   handId,
   offset,
@@ -31,13 +32,21 @@ export default function ControlPointVisualizer({
   hideControlSliders,
 }: {
   position: Vector3;
-  //basePosition: Vector3;
+  basePosition: Vector3;
+  baseRotation: [number, number, number];
   otherValues: RobotOtherValues;
   handId: string;
   offset: Vector3;
   color: string;
   hideControlSliders?: boolean;
 }) {
+
+  //starting position is the point when you apply baseRotation and basePosition to the position
+  const [startingPosition, setStartingPosition] = useState(position.clone());
+
+
+
+
   const handRef = useRef<Group>(null);
   const gripperRef = useRef<Group>(null);
 
@@ -112,6 +121,16 @@ export default function ControlPointVisualizer({
     otherValues.roll = wristValue;
   }, [wristValue, gripperValue, pitchValue]);
 
+  useEffect(() => {
+    //update position accordingly
+    const rotatedPosition = startingPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+    position.x = rotatedPosition.x + basePosition.x;
+    position.y = rotatedPosition.y + basePosition.y;
+    position.z = rotatedPosition.z + basePosition.z;
+
+
+  }, [startingPosition])
+
   const directBallControl = true;
   const { camera } = useThree();
   const dragStartPosRef = useRef<Vector3 | null>(null);
@@ -152,10 +171,30 @@ export default function ControlPointVisualizer({
             const scale = new Vector3();
             localMatrix.decompose(newPosition, rotation, scale);
 
-            position.x = newPosition.x + 0 * offset.x;
-            position.y = newPosition.y + 0 * offset.y;
-            position.z = newPosition.z + 0 * offset.z;
+            //rotate the new position by the base rotation
+            //and offset it by the base position
+            const rotatedPosition = newPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+            position.x = rotatedPosition.x + basePosition.x;
+            position.y = rotatedPosition.y + basePosition.y;
+            position.z = rotatedPosition.z + basePosition.z;
+            // const offsetPosition = rotatedPosition.clone().add(basePosition);
+
+
+            // position.x = newPosition.x + 0 * offset.x;
+            // position.y = newPosition.y + 0 * offset.y;
+            // position.z = newPosition.z + 0 * offset.z;
+
+            //rotate this matrix by 180 degrees in the z axis
+            // const rotator = new Matrix4().makeRotationZ(Math.PI);
+            // localMatrix.multiply(rotator);
+
+            //print the position y of hte new world matrix
+            console.log(localMatrix.elements[13]);
+
+
+
             setHandMatrix(localMatrix.clone());
+            //setHandMatrix(worldMatrix.clone());
 
             // // Get the new world position from the drag
             // const newWorldPos = new Vector3();
@@ -194,10 +233,12 @@ export default function ControlPointVisualizer({
         >
           <Sphere args={[0.02]} renderOrder={999}>
             <meshStandardMaterial
-              color="#ef4444"
+              //color="#ef4444"
+              color={'#00ffff'}
               transparent
               opacity={0.5}
-              emissive="#ef4444"
+              // emissive="#ef4444"
+              emissive={'#00ffff'}
               emissiveIntensity={0.5}
               depthTest={false}
               depthWrite={false}
@@ -245,15 +286,17 @@ export default function ControlPointVisualizer({
       )}
 
       {/* Three sliders for wrist, pitch, and gripper */}
-      {!hideControlSliders && <ControlSliders
-        wristValue={wristValue}
-        gripperValue={gripperValue}
-        pitchValue={pitchValue}
-        onWristChange={setWristValue}
-        onGripperChange={setGripperValue}
-        onPitchChange={setPitchValue}
-        position={[0, -0.05, 0]}
-      />}
+      {!hideControlSliders && <group position={startingPosition} >
+        <ControlSliders
+          wristValue={wristValue}
+          gripperValue={gripperValue}
+          pitchValue={pitchValue}
+          onWristChange={setWristValue}
+          onGripperChange={setGripperValue}
+          onPitchChange={setPitchValue}
+          position={[0, -0.05, 0]}
+        />
+      </group>}
     </group>
   );
 }

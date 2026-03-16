@@ -341,7 +341,13 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         const maxGripperAngle = 45;
 
         const leftInTableSpace = tableObj.worldToLocal(leftController.position.clone());
-        const leftPosition = leftInTableSpace.sub(LeftArmBasePosition);
+
+        //create leftPosition by taking the leftInTableSpace and applying the leftBase rotation and position
+        const leftPosition = leftInTableSpace.clone().applyAxisAngle(new Vector3(0, 0, 1), Math.PI).add(LeftArmBasePosition);
+
+
+
+        // const leftPosition = leftInTableSpace.sub(LeftArmBasePosition);
         mobileGoal.current.left.position.copy(leftPosition);
         mobileGoal.current.left.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
@@ -384,7 +390,8 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
 
         //calculate right position relative to table + Right Robot Base Position
         const rightInTableSpace = tableObj.worldToLocal(rightController.position.clone());
-        const rightPosition = rightInTableSpace.sub(RightArmBasePosition);
+        const rightPosition = rightInTableSpace.clone().applyAxisAngle(new Vector3(0, 0, 1), Math.PI).add(RightArmBasePosition);
+        // const rightPosition = rightInTableSpace.sub(RightArmBasePosition);
 
         mobileGoal.current.right.position.copy(rightPosition);
         mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
@@ -427,7 +434,7 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
                     {/* Table surface */}
                     <mesh position={[0, 0, 0]}>
                         <boxGeometry args={[TABLE_WIDTH, TABLE_HEIGHT, TABLE_DEPTH]} />
-                        <meshStandardMaterial color="#8B4513" />
+                        <meshStandardMaterial color="#8B4513" transparent opacity={0.35} />
                     </mesh>
 
 
@@ -458,6 +465,7 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
                             controlMode="ExternalGoal"
                             onJointValuesUpdate={onJointValuesUpdate}
                             mobileGoal={mobileGoal.current}
+                            flippedMode={true}
                         />
                     </group>
 

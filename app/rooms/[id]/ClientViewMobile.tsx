@@ -76,6 +76,7 @@ export function ClientViewMobile({
           onJointValuesUpdate={handleJointValuesUpdate}
           //mobileGoal={mobileGoal.current}
           focusedRobot={focusedRobot}
+          flippedMode={true}
         />
       </div>
 

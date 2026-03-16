@@ -31,6 +31,7 @@ import IKRobotFrame from "./IKRobotFrame";
 import Compass from "./Compass";
 
 const X_CAMERA_OFFSET = -0.5;
+const FLIP_AXIS = new Vector3(0, 0, 1);
 
 function OrbitControlsWithTarget({
   focusedRobot,
@@ -79,12 +80,14 @@ export default function RobotVisualizer({
   onJointValuesUpdate,
   mobileGoal,
   focusedRobot,
+  flippedMode = false,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   controlMode: RobotVisualizerControlMode;
   onJointValuesUpdate?: (robotId: string, jointValues: number[]) => void;
   mobileGoal?: MobileGoal;
   focusedRobot?: string | null;
+  flippedMode?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -124,6 +127,7 @@ export default function RobotVisualizer({
           onJointValuesUpdate={onJointValuesUpdate}
           mobileGoal={mobileGoal}
           focusedRobot={focusedRobot}
+          flippedMode={flippedMode}
         />
       </Canvas>
     </div>
@@ -137,12 +141,14 @@ export function RobotVisualizerXR({
   onJointValuesUpdate,
   mobileGoal,
   focusedRobot,
+  flippedMode = false,
 }: {
   currentState: RefObject<Record<string, DataFrame>>;
   controlMode: RobotVisualizerControlMode;
   onJointValuesUpdate?: (robotId: string, jointValues: number[]) => void;
   mobileGoal?: MobileGoal;
   focusedRobot?: string | null;
+  flippedMode?: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -161,6 +167,7 @@ export function RobotVisualizerXR({
       onJointValuesUpdate={onJointValuesUpdate}
       mobileGoal={mobileGoal}
       focusedRobot={focusedRobot}
+      flippedMode={flippedMode}
       hideGrid={true}
       hideCompass={true}
       hideControlSliders={true}
@@ -176,6 +183,7 @@ function RobotVisualizerCore({
   onJointValuesUpdate,
   mobileGoal,
   focusedRobot,
+  flippedMode = false,
   hideGrid,
   hideCompass,
   hideControlSliders,
@@ -186,11 +194,22 @@ function RobotVisualizerCore({
   onJointValuesUpdate?: (robotId: string, jointValues: number[]) => void;
   mobileGoal?: MobileGoal;
   focusedRobot?: string | null;
+  flippedMode?: boolean;
   hideGrid?: boolean;
   hideCompass?: boolean;
   hideControlSliders?: boolean;
   hideExternalGoal?: boolean;
 }) {
+  const leftBasePosition = flippedMode
+    ? LeftArmBasePosition.clone().applyAxisAngle(FLIP_AXIS, Math.PI)
+    : LeftArmBasePosition;
+  const rightBasePosition = flippedMode
+    ? RightArmBasePosition.clone().applyAxisAngle(FLIP_AXIS, Math.PI)
+    : RightArmBasePosition;
+  const baseRotation: [number, number, number] = flippedMode
+    ? [0, 0, Math.PI]
+    : [0, 0, 0];
+
   return (
     <>
       {/* Soft ambient lighting */}
@@ -232,23 +251,27 @@ function RobotVisualizerCore({
       <IKRobotFrame
         currentState={currentState}
         handId="left"
-        basePosition={LeftArmBasePosition}
+        basePosition={leftBasePosition}
+        baseRotation={baseRotation}
         controlMode={controlMode}
         externalGoal={mobileGoal?.[focusedRobot ?? "left"]}
         onJointValuesUpdate={onJointValuesUpdate}
         hideControlSliders={hideControlSliders}
         hideExternalGoal={hideExternalGoal}
+        isFlipped={flippedMode}
       />
 
       <IKRobotFrame
         currentState={currentState}
         handId="right"
-        basePosition={RightArmBasePosition}
+        basePosition={rightBasePosition}
+        baseRotation={baseRotation}
         controlMode={controlMode}
         externalGoal={mobileGoal?.[focusedRobot ?? "right"]}
         onJointValuesUpdate={onJointValuesUpdate}
         hideControlSliders={hideControlSliders}
         hideExternalGoal={hideExternalGoal}
+        isFlipped={flippedMode}
       />
 
       <OrbitControlsWithTarget focusedRobot={focusedRobot} />

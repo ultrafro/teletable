@@ -26,6 +26,8 @@ import { useIsVideoCallConnected } from "./useIsVideoCallConnected";
 import { useAutoApproveRequestWithPassword, useMakeRoomReadyOnLoad, useResetRoomWhenHostDisconnects, useUpdateHostPeerIdWhenItChanges } from "./HostView.hooks";
 import { useMonodepthStream } from "@/app/hooks/useMonodepthStream";
 
+const FLIPPED_MODE_STORAGE_KEY = "teletable.host.flippedMode";
+
 export default function HostView({ roomData }: { roomData: RoomData }) {
   const { user, session } = useAuth();
   const multiCamera = useMultiCamera();
@@ -37,6 +39,8 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
   const [isEndingStream, setIsEndingStream] = useState(false);
   const [isProcessingRequest, setIsProcessingRequest] = useState(false);
   const [isTestControlEnabled, setIsTestControlEnabled] = useState(false);
+  const [isFlippedModeEnabled, setIsFlippedModeEnabled] = useState(true);
+  const [hasLoadedFlippedMode, setHasLoadedFlippedMode] = useState(false);
   const [roomPassword, setRoomPassword] = useState(roomData.roomPW || "");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   // Track stereo layout per camera
@@ -312,6 +316,34 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
     setRoomPassword(roomData.roomPW || "");
   }, [roomData.roomPW]);
 
+  useEffect(() => {
+    try {
+      const persistedValue = localStorage.getItem(FLIPPED_MODE_STORAGE_KEY);
+      if (persistedValue !== null) {
+        setIsFlippedModeEnabled(persistedValue === "true");
+      }
+    } catch (error) {
+      console.error("Failed to load flipped mode preference", error);
+    } finally {
+      setHasLoadedFlippedMode(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedFlippedMode) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        FLIPPED_MODE_STORAGE_KEY,
+        String(isFlippedModeEnabled)
+      );
+    } catch (error) {
+      console.error("Failed to persist flipped mode preference", error);
+    }
+  }, [hasLoadedFlippedMode, isFlippedModeEnabled]);
+
   return (
     <div className="h-full flex flex-col lg:flex-row bg-background overflow-hidden">
       {/* Left side - Robot Visualizer */}
@@ -323,12 +355,24 @@ export default function HostView({ roomData }: { roomData: RoomData }) {
             </h2>
           </div>
           <div className="flex-1 relative min-h-0">
+            <div className="absolute top-3 right-3 z-20">
+              <label className="flex items-center gap-2 bg-background/80 border border-foreground/20 rounded-md px-3 py-2 text-xs sm:text-sm text-foreground shadow-sm">
+                <span>Flipped Mode</span>
+                <input
+                  type="checkbox"
+                  checked={isFlippedModeEnabled}
+                  onChange={(e) => setIsFlippedModeEnabled(e.target.checked)}
+                  className="h-4 w-4 accent-blue-600"
+                />
+              </label>
+            </div>
             <RobotVisualizer
               currentState={currentState}
               controlMode={
                 !isTestControlEnabled ? "DirectJoints" : "WidgetGoal"
               }
               onJointValuesUpdate={robotWS.sendJointValuesToRobot}
+              flippedMode={isFlippedModeEnabled}
             />
           </div>
         </div>

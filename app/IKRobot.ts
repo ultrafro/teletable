@@ -43,6 +43,8 @@ export class IKRobot {
 
   solver: Solver;
   onJointValuesUpdate?: (jointValues: number[]) => void;
+  minHeight: number = 0.0;
+  maxHeight: number = 1.0;
 
   constructor(
     scene: Object3D,
@@ -201,6 +203,11 @@ export class IKRobot {
     this.directValues = directValues;
   }
 
+  setHeightLimits(minHeight: number, maxHeight: number) {
+    this.minHeight = minHeight;
+    this.maxHeight = maxHeight;
+  }
+
   walkRobotTree(
     link: Link | Joint | URDFVisual,
     list: (Link | Joint | URDFVisual)[]
@@ -244,8 +251,6 @@ export class IKRobot {
     const maxAngleDegrees = 70;
     const minRadius = 0.1;
     const maxRadius = 0.4;
-    const minHeight = 0.0;
-    const maxHeight = 1;
 
     const minAngle = minAngleDegrees * Math.PI / 180;
     const maxAngle = maxAngleDegrees * Math.PI / 180;
@@ -255,7 +260,7 @@ export class IKRobot {
     const inputRadius = Math.sqrt(x * x + z * z);
 
     const clampedAngle = MathUtils.clamp(inputAngle, minAngle, maxAngle);
-    const clampedHeight = MathUtils.clamp(inputHeight, minHeight, maxHeight);
+    const clampedHeight = MathUtils.clamp(inputHeight, this.minHeight, this.maxHeight);
     const clampedRadius = MathUtils.clamp(inputRadius, minRadius, maxRadius);
 
     return new Vector3(clampedRadius * Math.sin(clampedAngle), clampedHeight, -clampedRadius * Math.cos(clampedAngle));

@@ -49,6 +49,7 @@ export function ClientViewDesktop({
               currentState={currentState}
               controlMode="WidgetGoal"
               onJointValuesUpdate={handleJointValuesUpdate}
+              flippedMode={true}
             />
           </div>
         </div>

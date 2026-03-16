@@ -10,6 +10,7 @@ export function IKRobotComponent({
   //basePostion,
   goalPosition,
   goalOtherValues,
+  isFlipped,
   onJointValuesUpdate,
   useDirectValues,
   currentState,
@@ -22,6 +23,7 @@ export function IKRobotComponent({
     pitch: number;
     gripper: number;
   };
+  isFlipped?: boolean;
   onJointValuesUpdate: (jointValues: number[]) => void;
   useDirectValues: boolean;
   currentState: RefObject<Record<string, DataFrame>>;
@@ -90,6 +92,8 @@ export function IKRobotComponent({
 
 
     if (IKRobotClass) {
+      IKRobotClass.setHeightLimits(isFlipped ? -1.0 : 0.0, 1.0);
+
       //update base
       //IKRobotClass.setBaseTransform(basePostion);
 
