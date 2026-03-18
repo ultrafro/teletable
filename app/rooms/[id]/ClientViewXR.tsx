@@ -28,6 +28,7 @@ const TABLE_LEG_HEIGHT = 1;
 const HANDLE_SIZE = 0.06;
 
 const TABLE_OFFSET = new Vector3(0, TABLE_LEG_HEIGHT + TABLE_HEIGHT / 2, -0.8);
+const flippedMode = true;
 
 // Debug component that shows a green cube at left controller position
 function DebugLeftControllerCube({ targetRef }: { targetRef: React.RefObject<THREE.Object3D> }) {
@@ -346,39 +347,42 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         const leftPosition = leftInTableSpace.clone().applyAxisAngle(new Vector3(0, 0, 1), Math.PI).add(LeftArmBasePosition);
 
 
+        const rightController = controllerPositions.rightController;
 
         // const leftPosition = leftInTableSpace.sub(LeftArmBasePosition);
         mobileGoal.current.left.position.copy(leftPosition);
-        mobileGoal.current.left.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
         //find the left pitch. it's the local "x" angle of the left controller
         const leftLocalEuler = new Euler().setFromQuaternion(leftController.quaternion.clone());
-        //mobileGoal.current.left.pitch = -leftLocalEuler.x * 180 / Math.PI;
-        //mobileGoal.current.left.pitch = -leftLocalEuler.x;
 
-        mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion);
-        mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion);
+
+        if (flippedMode) {
+            //hack
+            mobileGoal.current.left.pitch = calculateLocalXAngleDeg(rightController.quaternion, flippedMode);
+            mobileGoal.current.left.roll = calculateLocalZAngleDeg(rightController.quaternion, flippedMode);
+            mobileGoal.current.left.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
+
+
+        } else {
+
+            mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion, flippedMode);
+            mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion, flippedMode);
+            mobileGoal.current.left.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
+
+        }
+
 
         if (useThumbstick) {
             //only control roll using thumbstick
             // mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
-            mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
+            if (flippedMode) {
+                //hack.
+                mobileGoal.current.left.roll = -rightController.xyAccumulator.x;
+            } else {
+                mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
+            }
         }
 
-        // //find the left pitch. it's the relative "x" angle between the left controller and the table surface
-        // const leftWorldQuaternion = leftController.quaternion.clone();
-        // const leftLocalQuaternion = leftController.quaternion.clone();
-        // const leftLocalEuler = new Euler().setFromQuaternion(leftLocalQuaternion);
-
-        // const leftToTableQuaternion = leftWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
-        // const leftToTableEuler = new Euler().setFromQuaternion(leftToTableQuaternion);
-        // mobileGoal.current.left.pitch = -leftToTableEuler.x * 180 / Math.PI;
-        //mobileGoal.current.left.roll = leftLocalEuler.z * 180 / Math.PI;
-        //mobileGoal.current.left.roll = leftLocalEuler.z;
-
-
-
-        const rightController = controllerPositions.rightController;
         if (!mobileGoal.current.right) {
             mobileGoal.current.right = {
                 position: new Vector3(),
@@ -391,32 +395,43 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         //calculate right position relative to table + Right Robot Base Position
         const rightInTableSpace = tableObj.worldToLocal(rightController.position.clone());
         const rightPosition = rightInTableSpace.clone().applyAxisAngle(new Vector3(0, 0, 1), Math.PI).add(RightArmBasePosition);
-        // const rightPosition = rightInTableSpace.sub(RightArmBasePosition);
 
         mobileGoal.current.right.position.copy(rightPosition);
-        mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
         const rightWorldQuaternion = rightController.quaternion.clone();
         const rightLocalQuaternion = rightController.quaternion.clone();
         const rightLocalEuler = new Euler().setFromQuaternion(rightLocalQuaternion);
         const rightToTableQuaternion = rightWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
         const rightToTableEuler = new Euler().setFromQuaternion(rightToTableQuaternion);
-        //mobileGoal.current.right.pitch = -rightToTableEuler.x * 180 / Math.PI;
-        // mobileGoal.current.right.pitch = -rightLocalEuler.x * 180 / Math.PI;
-        // mobileGoal.current.right.roll = rightLocalEuler.z * 180 / Math.PI;
 
-        mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion);
-        mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion);
+        if (flippedMode) {
+            //hack
+            mobileGoal.current.right.pitch = calculateLocalXAngleDeg(leftController.quaternion, flippedMode);
+            mobileGoal.current.right.roll = calculateLocalZAngleDeg(leftController.quaternion, flippedMode);
+            mobileGoal.current.right.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
+
+
+        } else {
+            mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion, flippedMode);
+            mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion, flippedMode);
+            mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
+
+
+        }
+
 
         if (useThumbstick) {
             //only control pitch using thumbstick
             // mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
-            mobileGoal.current.right.roll = -rightController.xyAccumulator.x;
+            if (flippedMode) {
+                //hack.
+                mobileGoal.current.right.roll = -leftController.xyAccumulator.x;
+            } else {
+                mobileGoal.current.right.roll = -rightController.xyAccumulator.x;
+
+            }
         }
 
-
-        // mobileGoal.current.right.pitch = -rightLocalEuler.x;
-        // mobileGoal.current.right.roll = rightLocalEuler.z;
 
 
     });
@@ -465,7 +480,7 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
                             controlMode="ExternalGoal"
                             onJointValuesUpdate={onJointValuesUpdate}
                             mobileGoal={mobileGoal.current}
-                            flippedMode={true}
+                            flippedMode={flippedMode}
                         />
                     </group>
 

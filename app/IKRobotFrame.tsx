@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { IKRobotComponent } from "./IKRobotComponent";
 import { Quaternion, Vector3 } from "three";
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject, useEffect, useMemo, useRef } from "react";
 import {
   DataFrame,
   ExternalGoal,
@@ -94,12 +94,29 @@ export default function IKRobotFrame({
     gripper: 0,
   });
 
+  const startingPosition = useMemo(() => {
+    return new Vector3(basePosition.x, basePosition.y + (isFlipped ? -0.2 : 0.2), basePosition.z - 0.3)
+  }, [basePosition, isFlipped]);
+
   useEffect(() => {
     if (externalGoal && controlMode === "ExternalGoal") {
       handPosition.current = externalGoal.position;
       handOtherValues.current = externalGoal;
+    } else {
+      if (controlMode === "ExternalGoal") {
+        //copy starting position
+
+
+        const rotatedPosition = startingPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), (baseRotation || [0, 0, 0])[2]);
+        handPosition.current.x = rotatedPosition.x + basePosition.x;
+        handPosition.current.y = rotatedPosition.y + basePosition.y;
+        handPosition.current.z = rotatedPosition.z + basePosition.z;
+      }
+
+
+
     }
-  }, [externalGoal]);
+  }, [externalGoal, startingPosition, basePosition, baseRotation, isFlipped]);
 
   return (
     <>

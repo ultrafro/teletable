@@ -1,6 +1,6 @@
 import { Euler, Object3D, Quaternion, Vector2, Vector3 } from "three";
 
-export function calculateLocalXAngleDeg(worldQuaternion: Quaternion) {
+export function calculateLocalXAngleDeg(worldQuaternion: Quaternion, flippedMode?: boolean) {
     //get world quaternion
 
 
@@ -19,7 +19,7 @@ export function calculateLocalXAngleDeg(worldQuaternion: Quaternion) {
 
     const angle = Math.atan2(forwardY, forwardOntoPlaneMagnitude);
     const angleDeg = -angle * 180 / Math.PI;
-    return angleDeg;
+    return flippedMode ? -angleDeg : angleDeg;
 
     // //get forward projected onto Y-Z plane
     // const forwardProjected = (new Vector2(forward.z, forward.y)).normalize();
@@ -44,7 +44,7 @@ export function calculateLocalXAngleDeg(worldQuaternion: Quaternion) {
 }
 
 
-export function calculateLocalZAngleDeg(worldQuaternion: Quaternion) {
+export function calculateLocalZAngleDeg(worldQuaternion: Quaternion, flippedMode?: boolean) {
 
 
 
