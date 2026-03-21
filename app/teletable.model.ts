@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Color, Vector3 } from "three";
 
 export type DataFrame = {
   joints: number[];
@@ -32,6 +32,8 @@ export type BothHands = {
 
 export const LeftArmBasePosition = new Vector3(-0.3, 0, 0);
 export const RightArmBasePosition = new Vector3(0.3, 0, 0);
+export const LeftColor = new Color(0.0, 0.0, 1.0);
+export const RightColor = new Color(1.0, 0.0, 0.0);
 
 export const DefaultLeftHandDetection: HandDetection = {
   position: { x: 0, y: 0, z: -0.3 },

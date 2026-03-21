@@ -355,21 +355,9 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         //find the left pitch. it's the local "x" angle of the left controller
         const leftLocalEuler = new Euler().setFromQuaternion(leftController.quaternion.clone());
 
-
-        if (flippedMode) {
-            //hack
-            mobileGoal.current.left.pitch = calculateLocalXAngleDeg(rightController.quaternion, flippedMode);
-            mobileGoal.current.left.roll = calculateLocalZAngleDeg(rightController.quaternion, flippedMode);
-            mobileGoal.current.left.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
-
-
-        } else {
-
-            mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion, flippedMode);
-            mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion, flippedMode);
-            mobileGoal.current.left.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
-
-        }
+        mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion, flippedMode);
+        mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion, flippedMode);
+        mobileGoal.current.left.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
 
         if (useThumbstick) {
@@ -404,21 +392,9 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         const rightToTableQuaternion = rightWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
         const rightToTableEuler = new Euler().setFromQuaternion(rightToTableQuaternion);
 
-        if (flippedMode) {
-            //hack
-            mobileGoal.current.right.pitch = calculateLocalXAngleDeg(leftController.quaternion, flippedMode);
-            mobileGoal.current.right.roll = calculateLocalZAngleDeg(leftController.quaternion, flippedMode);
-            mobileGoal.current.right.gripper = (1 - leftController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
-
-
-        } else {
-            mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion, flippedMode);
-            mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion, flippedMode);
-            mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
-
-
-        }
-
+        mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion, flippedMode);
+        mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion, flippedMode);
+        mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
         if (useThumbstick) {
             //only control pitch using thumbstick

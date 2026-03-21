@@ -5,6 +5,8 @@ import { RefObject, useEffect, useMemo, useRef } from "react";
 import {
   DataFrame,
   ExternalGoal,
+  LeftColor,
+  RightColor,
   RobotVisualizerControlMode,
 } from "./teletable.model";
 import ControlPointVisualizer from "./ControlPointVisualizer";
@@ -126,6 +128,7 @@ export default function IKRobotFrame({
           goalPosition={handPosition.current}
           goalOtherValues={handOtherValues.current}
           isFlipped={isFlipped}
+          color={handId === "left" ? LeftColor : RightColor}
           onJointValuesUpdate={(jointValues) => {
             //copy into currentState.joints
             for (let i = 0; i < jointValues.length; i++) {
