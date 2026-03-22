@@ -362,13 +362,8 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
 
         if (useThumbstick) {
             //only control roll using thumbstick
-            // mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
-            if (flippedMode) {
-                //hack.
-                mobileGoal.current.left.roll = -rightController.xyAccumulator.x;
-            } else {
-                mobileGoal.current.left.roll = -leftController.xyAccumulator.x;
-            }
+            mobileGoal.current.left.pitch = leftController.xyAccumulator.y;
+
         }
 
         if (!mobileGoal.current.right) {
@@ -396,16 +391,11 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion, flippedMode);
         mobileGoal.current.right.gripper = (1 - rightController.triggerValue) * (maxGripperAngle - minGripperAngle) + minGripperAngle;
 
+
+
         if (useThumbstick) {
             //only control pitch using thumbstick
-            // mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
-            if (flippedMode) {
-                //hack.
-                mobileGoal.current.right.roll = -leftController.xyAccumulator.x;
-            } else {
-                mobileGoal.current.right.roll = -rightController.xyAccumulator.x;
-
-            }
+            mobileGoal.current.right.pitch = rightController.xyAccumulator.y;
         }
 
 
