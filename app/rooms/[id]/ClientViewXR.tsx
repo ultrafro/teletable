@@ -1,6 +1,6 @@
 'use client'
 import { DataFrame, LeftArmBasePosition, MobileGoal, RightArmBasePosition } from "@/app/teletable.model";
-import { useXRInputSourceStateContext, XR, XRLayer, XRStore } from "@react-three/xr";
+import { useXRInputSourceStateContext, XR, XRLayer, XRStore, useXRSessionFeatureEnabled } from "@react-three/xr";
 import { Handle, HandleTarget } from "@react-three/handle";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -123,10 +123,70 @@ function ThumbstickToggleButton({ onToggle, useThumbstick }: { onToggle: () => v
     );
 }
 
+// Fallback video mesh for when WebXR layers aren't supported - renders on top of everything
+function FallbackVideoMesh({ video, scale, onClick }: { video: HTMLVideoElement | undefined, scale: [number, number, number], onClick: () => void }) {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const textureRef = useRef<THREE.VideoTexture | null>(null);
+
+    useEffect(() => {
+        if (!video || !meshRef.current) return;
+
+        // Create video texture
+        const texture = new THREE.VideoTexture(video);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        textureRef.current = texture;
+
+        // Update material
+        const material = meshRef.current.material as THREE.MeshBasicMaterial;
+        material.map = texture;
+        material.needsUpdate = true;
+
+        return () => {
+            texture.dispose();
+        };
+    }, [video]);
+
+    // Update texture each frame
+    useFrame(() => {
+        if (textureRef.current && video && !video.paused) {
+            textureRef.current.needsUpdate = true;
+        }
+    });
+
+    return (
+        <mesh ref={meshRef} scale={scale} onClick={onClick} renderOrder={9999}>
+            <planeGeometry args={[1, 1]} />
+            <meshBasicMaterial
+                toneMapped={false}
+                depthTest={false}
+                depthWrite={false}
+                transparent={true}
+            />
+        </mesh>
+    );
+}
+
 // Draggable video panels component for multiple camera streams
-function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraStream[] }) {
+function DraggableVideoPanels({ remoteStreams, diagnostics }: { remoteStreams: RemoteCameraStream[], diagnostics: React.RefObject<{ events: string[], frameCount: number }> }) {
     const videoByCameraIdRef = useRef<Map<string, HTMLVideoElement>>(new Map());
     const [videoDimensions, setVideoDimensions] = useState<Map<string, { width: number; height: number }>>(new Map());
+
+    // Check if WebXR layers are supported - affects how video renders
+    const layersEnabled = useXRSessionFeatureEnabled('layers');
+    const layersLoggedRef = useRef(false);
+
+    useEffect(() => {
+        if (!layersLoggedRef.current) {
+            layersLoggedRef.current = true;
+            const timestamp = new Date().toISOString().slice(11, 19);
+            diagnostics.current.events.push(`${timestamp} LAYERS: ${layersEnabled ? 'ON' : 'OFF (fallback)'}`);
+            if (diagnostics.current.events.length > 10) {
+                diagnostics.current.events.shift();
+            }
+        }
+    }, [layersEnabled, diagnostics]);
 
     const videoEntries = useMemo(() => {
         return remoteStreams.map((streamInfo) => {
@@ -147,6 +207,13 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
                     .getVideoTracks()
                     .map((t) => ({ id: t.id, enabled: t.enabled, muted: t.muted, readyState: t.readyState }));
                 console.log("[XRVideo] attached stream", streamInfo.cameraId, streamInfo.label, "stereo:", streamInfo.stereoLayout, trackStates);
+
+                // Log stream attachment to diagnostics
+                const timestamp = new Date().toISOString().slice(11, 19);
+                diagnostics.current.events.push(`${timestamp} STREAM ${streamInfo.label}`);
+                if (diagnostics.current.events.length > 10) {
+                    diagnostics.current.events.shift();
+                }
             }
 
             return {
@@ -201,6 +268,15 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
 
             const updateDimensions = () => {
                 if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    const prevDims = videoDimensions.get(cameraId);
+                    if (!prevDims || prevDims.width !== video.videoWidth || prevDims.height !== video.videoHeight) {
+                        const timestamp = new Date().toISOString().slice(11, 19);
+                        diagnostics.current.events.push(`${timestamp} VID ${label}: ${video.videoWidth}x${video.videoHeight}`);
+                        // Keep only last 10 events
+                        if (diagnostics.current.events.length > 10) {
+                            diagnostics.current.events.shift();
+                        }
+                    }
                     setVideoDimensions((prev) => {
                         const next = new Map(prev);
                         next.set(cameraId, { width: video.videoWidth, height: video.videoHeight });
@@ -283,13 +359,22 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
                 return (
                     <HandleTarget key={stream.cameraId}>
                         <Handle targetRef="from-context">
-                            <group position={[index * 0.4 - offset, 0, 0]}>
-                                <XRLayer
-                                    src={entry?.video}
-                                    scale={scale}
-                                    layout={entry?.stereoLayout === "monodepth" ? "mono" : (entry?.stereoLayout || "mono")}
-                                    onClick={() => entry?.video?.play()}
-                                />
+                            <group position={[index * 0.4 - offset, 0, 0]} renderOrder={9999}>
+                                {layersEnabled ? (
+                                    <XRLayer
+                                        src={entry?.video}
+                                        scale={scale}
+                                        layout={entry?.stereoLayout === "monodepth" ? "mono" : (entry?.stereoLayout || "mono")}
+                                        onClick={() => entry?.video?.play()}
+                                        renderOrder={9999}
+                                    />
+                                ) : (
+                                    <FallbackVideoMesh
+                                        video={entry?.video}
+                                        scale={scale}
+                                        onClick={() => entry?.video?.play()}
+                                    />
+                                )}
                             </group>
                         </Handle>
                     </HandleTarget>
@@ -299,7 +384,55 @@ function DraggableVideoPanels({ remoteStreams }: { remoteStreams: RemoteCameraSt
     );
 }
 
-function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTracking, useThumbstick, onToggleThumbstick }: { remoteStreams: RemoteCameraStream[], onJointValuesUpdate: (robotId: string, joints: number[]) => void, trackingEnabled: boolean, onStartTracking: () => void, useThumbstick: boolean, onToggleThumbstick: () => void }) {
+// Diagnostic display component to track potential flicker sources
+function DiagnosticsDisplay({ diagnostics }: { diagnostics: React.RefObject<{ events: string[], frameCount: number }> }) {
+    const [displayText, setDisplayText] = useState("");
+    const lastUpdateTime = useRef(0);
+
+    useFrame(() => {
+        // Update display every 200ms to avoid causing flicker itself
+        const now = Date.now();
+        if (now - lastUpdateTime.current < 200) {
+            return;
+        }
+        lastUpdateTime.current = now;
+
+        const d = diagnostics.current;
+        // Show most recent events at the bottom (auto-scroll effect)
+        const recentEvents = d.events.slice(-8).join("\n");
+        const timestamp = new Date().toISOString().slice(11, 23); // HH:MM:SS.mmm
+        setDisplayText(`Frame: ${d.frameCount}  Time: ${timestamp}\n${recentEvents}`);
+    });
+
+    return (
+        <HandleTarget>
+            <Handle targetRef="from-context">
+                <group position={[TABLE_WIDTH / 2 + 0.15, TABLE_HEIGHT / 2 + 0.2, 0]}>
+                    <XrUi>
+                        {/* @ts-expect-error - react-xr-ui types incompatible with fiber v9 rc */}
+                        <Layer
+                            width={0.4}
+                            height={0.3}
+                            backgroundColor="rgba(0, 0, 50, 0.95)"
+                            borderRadius={0.01}
+                            borderWidth={0.003}
+                            borderColor="#00ff00"
+                            padding={0.015}
+                            fontSize={0.028}
+                            color="#00ff00"
+                            textAlign="left"
+                            justifyContent="flex-end"
+                            alignItems="flex-start"
+                            textContent={displayText}
+                        />
+                    </XrUi>
+                </group>
+            </Handle>
+        </HandleTarget>
+    );
+}
+
+function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTracking, useThumbstick, onToggleThumbstick, diagnostics }: { remoteStreams: RemoteCameraStream[], onJointValuesUpdate: (robotId: string, joints: number[]) => void, trackingEnabled: boolean, onStartTracking: () => void, useThumbstick: boolean, onToggleThumbstick: () => void, diagnostics: React.RefObject<{ events: string[], frameCount: number }> }) {
 
     // Corner positions for handles (on top of the table surface)
     const handlePositions: [number, number, number][] = [
@@ -312,7 +445,19 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
     const currentState = useRef<Record<string, DataFrame>>({});
     const mobileGoal = useRef<MobileGoal>({});
     const tableRef = useRef<THREE.Object3D>(null!);
+
+    // Reusable objects to avoid allocations in useFrame
+    const tempTableQuaternion = useRef(new Quaternion());
+    const tempLeftInTableSpace = useRef(new Vector3());
+    const tempLeftPosition = useRef(new Vector3());
+    const tempRightInTableSpace = useRef(new Vector3());
+    const tempRightPosition = useRef(new Vector3());
+    const tempAxisZ = useRef(new Vector3(0, 0, 1));
+
     useFrame(() => {
+        // Increment frame counter for diagnostics
+        diagnostics.current.frameCount++;
+
         // Only track when enabled
         if (!trackingEnabled) {
             return;
@@ -324,8 +469,7 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
             return;
         }
 
-        const tableWorldQuaternion = new Quaternion();
-        tableObj.getWorldQuaternion(tableWorldQuaternion);
+        tableObj.getWorldQuaternion(tempTableQuaternion.current);
 
         //copy controller positions to currentState
         const leftController = controllerPositions.leftController;
@@ -341,19 +485,18 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         const minGripperAngle = -45;
         const maxGripperAngle = 45;
 
-        const leftInTableSpace = tableObj.worldToLocal(leftController.position.clone());
+        // Reuse temp vectors instead of creating new ones
+        tempLeftInTableSpace.current.copy(leftController.position);
+        tableObj.worldToLocal(tempLeftInTableSpace.current);
 
         //create leftPosition by taking the leftInTableSpace and applying the leftBase rotation and position
-        const leftPosition = leftInTableSpace.clone().applyAxisAngle(new Vector3(0, 0, 1), Math.PI).add(LeftArmBasePosition);
-
+        tempLeftPosition.current.copy(tempLeftInTableSpace.current)
+            .applyAxisAngle(tempAxisZ.current, Math.PI)
+            .add(LeftArmBasePosition);
 
         const rightController = controllerPositions.rightController;
 
-        // const leftPosition = leftInTableSpace.sub(LeftArmBasePosition);
-        mobileGoal.current.left.position.copy(leftPosition);
-
-        //find the left pitch. it's the local "x" angle of the left controller
-        const leftLocalEuler = new Euler().setFromQuaternion(leftController.quaternion.clone());
+        mobileGoal.current.left.position.copy(tempLeftPosition.current);
 
         mobileGoal.current.left.pitch = calculateLocalXAngleDeg(leftController.quaternion, flippedMode);
         mobileGoal.current.left.roll = calculateLocalZAngleDeg(leftController.quaternion, flippedMode);
@@ -376,16 +519,14 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
         }
 
         //calculate right position relative to table + Right Robot Base Position
-        const rightInTableSpace = tableObj.worldToLocal(rightController.position.clone());
-        const rightPosition = rightInTableSpace.clone().applyAxisAngle(new Vector3(0, 0, 1), Math.PI).add(RightArmBasePosition);
+        tempRightInTableSpace.current.copy(rightController.position);
+        tableObj.worldToLocal(tempRightInTableSpace.current);
 
-        mobileGoal.current.right.position.copy(rightPosition);
+        tempRightPosition.current.copy(tempRightInTableSpace.current)
+            .applyAxisAngle(tempAxisZ.current, Math.PI)
+            .add(RightArmBasePosition);
 
-        const rightWorldQuaternion = rightController.quaternion.clone();
-        const rightLocalQuaternion = rightController.quaternion.clone();
-        const rightLocalEuler = new Euler().setFromQuaternion(rightLocalQuaternion);
-        const rightToTableQuaternion = rightWorldQuaternion.multiply(tableWorldQuaternion.clone().invert());
-        const rightToTableEuler = new Euler().setFromQuaternion(rightToTableQuaternion);
+        mobileGoal.current.right.position.copy(tempRightPosition.current);
 
         mobileGoal.current.right.pitch = calculateLocalXAngleDeg(rightController.quaternion, flippedMode);
         mobileGoal.current.right.roll = calculateLocalZAngleDeg(rightController.quaternion, flippedMode);
@@ -430,7 +571,10 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
                     ))}
 
                     {/* Draggable video panels for multiple camera streams */}
-                    <DraggableVideoPanels remoteStreams={remoteStreams} />
+                    <DraggableVideoPanels remoteStreams={remoteStreams} diagnostics={diagnostics} />
+
+                    {/* Diagnostics display */}
+                    <DiagnosticsDisplay diagnostics={diagnostics} />
 
                     {/* Start tracking button at front edge of table */}
                     <StartTrackingButton onStart={onStartTracking} trackingEnabled={trackingEnabled} />
@@ -480,6 +624,9 @@ export default function ClientViewXR({
     const [trackingEnabled, setTrackingEnabled] = useState(false);
     const [useThumbstick, setUseThumbstick] = useState(true);
 
+    // Diagnostics ref to track events without causing re-renders
+    const diagnostics = useRef<{ events: string[], frameCount: number }>({ events: [], frameCount: 0 });
+
     if (!store) {
         return <div>Loading...</div>
     }
@@ -515,6 +662,7 @@ export default function ClientViewXR({
                         onStartTracking={() => setTrackingEnabled(prev => !prev)}
                         useThumbstick={useThumbstick}
                         onToggleThumbstick={() => setUseThumbstick(prev => !prev)}
+                        diagnostics={diagnostics}
                     />
                 </XR>
             </Canvas>
