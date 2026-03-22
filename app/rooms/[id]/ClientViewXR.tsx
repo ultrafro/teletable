@@ -20,6 +20,17 @@ const Canvas = dynamic(
     { ssr: false }
 )
 
+// Diagnostics data type for tracking potential flicker sources
+type DiagnosticsData = {
+    events: string[];
+    frameCount: number;
+    videoFrameCount: number;
+    renderCount: number;
+    lastFps: number;
+    fpsHistory: number[];
+    stateChanges: number;
+};
+
 // Table dimensions
 const TABLE_WIDTH = 0.8;
 const TABLE_DEPTH = 0.6;
@@ -124,9 +135,10 @@ function ThumbstickToggleButton({ onToggle, useThumbstick }: { onToggle: () => v
 }
 
 // Fallback video mesh for when WebXR layers aren't supported - renders on top of everything
-function FallbackVideoMesh({ video, scale, onClick }: { video: HTMLVideoElement | undefined, scale: [number, number, number], onClick: () => void }) {
+function FallbackVideoMesh({ video, scale, onClick, diagnostics }: { video: HTMLVideoElement | undefined, scale: [number, number, number], onClick: () => void, diagnostics?: React.RefObject<DiagnosticsData> }) {
     const meshRef = useRef<THREE.Mesh>(null);
     const textureRef = useRef<THREE.VideoTexture | null>(null);
+    const lastVideoTime = useRef(0);
 
     useEffect(() => {
         if (!video || !meshRef.current) return;
@@ -138,38 +150,46 @@ function FallbackVideoMesh({ video, scale, onClick }: { video: HTMLVideoElement 
         texture.colorSpace = THREE.SRGBColorSpace;
         textureRef.current = texture;
 
-        // Update material
         const material = meshRef.current.material as THREE.MeshBasicMaterial;
         material.map = texture;
         material.needsUpdate = true;
 
+        // Set up onBeforeRender to clear depth buffer before this mesh renders
+        meshRef.current.onBeforeRender = (renderer) => {
+            renderer.clearDepth();
+        };
+
         return () => {
             texture.dispose();
+            if (meshRef.current) {
+                meshRef.current.onBeforeRender = () => {};
+            }
         };
     }, [video]);
 
-    // Update texture each frame
+    // Update texture each frame and track video frame changes
     useFrame(() => {
         if (textureRef.current && video && !video.paused) {
             textureRef.current.needsUpdate = true;
+
+            // Track video time changes for diagnostics
+            if (diagnostics && video.currentTime !== lastVideoTime.current) {
+                diagnostics.current.videoFrameCount++;
+                lastVideoTime.current = video.currentTime;
+            }
         }
     });
 
     return (
-        <mesh ref={meshRef} scale={scale} onClick={onClick} renderOrder={9999}>
+        <mesh ref={meshRef} scale={scale} onClick={onClick} renderOrder={99999}>
             <planeGeometry args={[1, 1]} />
-            <meshBasicMaterial
-                toneMapped={false}
-                depthTest={false}
-                depthWrite={false}
-                transparent={true}
-            />
+            <meshBasicMaterial toneMapped={false} side={THREE.DoubleSide} />
         </mesh>
     );
 }
 
 // Draggable video panels component for multiple camera streams
-function DraggableVideoPanels({ remoteStreams, diagnostics }: { remoteStreams: RemoteCameraStream[], diagnostics: React.RefObject<{ events: string[], frameCount: number }> }) {
+function DraggableVideoPanels({ remoteStreams, diagnostics }: { remoteStreams: RemoteCameraStream[], diagnostics: React.RefObject<DiagnosticsData> }) {
     const videoByCameraIdRef = useRef<Map<string, HTMLVideoElement>>(new Map());
     const [videoDimensions, setVideoDimensions] = useState<Map<string, { width: number; height: number }>>(new Map());
 
@@ -285,15 +305,35 @@ function DraggableVideoPanels({ remoteStreams, diagnostics }: { remoteStreams: R
                 }
             };
 
+            const logToDiagnostics = (event: string) => {
+                const timestamp = new Date().toISOString().slice(11, 19);
+                diagnostics.current.events.push(`${timestamp} ${event} ${label}`);
+                if (diagnostics.current.events.length > 10) {
+                    diagnostics.current.events.shift();
+                }
+            };
+
             const onLoadedMetadata = () => {
                 logVideoState("loadedmetadata");
                 updateDimensions();
             };
             const onCanPlay = () => logVideoState("canplay");
-            const onPlaying = () => logVideoState("playing");
-            const onWaiting = () => logVideoState("waiting");
-            const onStalled = () => logVideoState("stalled");
-            const onError = () => logVideoState("error");
+            const onPlaying = () => {
+                logVideoState("playing");
+                logToDiagnostics("PLAY");
+            };
+            const onWaiting = () => {
+                logVideoState("waiting");
+                logToDiagnostics("WAIT");
+            };
+            const onStalled = () => {
+                logVideoState("stalled");
+                logToDiagnostics("STALL");
+            };
+            const onError = () => {
+                logVideoState("error");
+                logToDiagnostics("ERR");
+            };
             const onResize = () => {
                 logVideoState("resize");
                 updateDimensions();
@@ -373,6 +413,7 @@ function DraggableVideoPanels({ remoteStreams, diagnostics }: { remoteStreams: R
                                         video={entry?.video}
                                         scale={scale}
                                         onClick={() => entry?.video?.play()}
+                                        diagnostics={diagnostics}
                                     />
                                 )}
                             </group>
@@ -385,40 +426,68 @@ function DraggableVideoPanels({ remoteStreams, diagnostics }: { remoteStreams: R
 }
 
 // Diagnostic display component to track potential flicker sources
-function DiagnosticsDisplay({ diagnostics }: { diagnostics: React.RefObject<{ events: string[], frameCount: number }> }) {
+function DiagnosticsDisplay({ diagnostics }: { diagnostics: React.RefObject<DiagnosticsData> }) {
     const [displayText, setDisplayText] = useState("");
     const lastUpdateTime = useRef(0);
+    const lastFrameCount = useRef(0);
+    const lastVideoFrameCount = useRef(0);
 
     useFrame(() => {
-        // Update display every 200ms to avoid causing flicker itself
+        // Update display every 500ms to avoid causing flicker itself
         const now = Date.now();
-        if (now - lastUpdateTime.current < 200) {
+        const elapsed = now - lastUpdateTime.current;
+        if (elapsed < 500) {
             return;
         }
-        lastUpdateTime.current = now;
 
         const d = diagnostics.current;
+
+        // Calculate FPS
+        const framesDelta = d.frameCount - lastFrameCount.current;
+        const fps = Math.round((framesDelta / elapsed) * 1000);
+        lastFrameCount.current = d.frameCount;
+
+        // Calculate video FPS
+        const videoFramesDelta = d.videoFrameCount - lastVideoFrameCount.current;
+        const videoFps = Math.round((videoFramesDelta / elapsed) * 1000);
+        lastVideoFrameCount.current = d.videoFrameCount;
+
+        // Update FPS history
+        d.fpsHistory.push(fps);
+        if (d.fpsHistory.length > 10) d.fpsHistory.shift();
+        d.lastFps = fps;
+
+        lastUpdateTime.current = now;
+
         // Show most recent events at the bottom (auto-scroll effect)
-        const recentEvents = d.events.slice(-8).join("\n");
+        const recentEvents = d.events.slice(-5).join("\n");
         const timestamp = new Date().toISOString().slice(11, 23); // HH:MM:SS.mmm
-        setDisplayText(`Frame: ${d.frameCount}  Time: ${timestamp}\n${recentEvents}`);
+        const avgFps = d.fpsHistory.length > 0 ? Math.round(d.fpsHistory.reduce((a, b) => a + b, 0) / d.fpsHistory.length) : 0;
+
+        setDisplayText(
+            `FPS: ${fps} (avg: ${avgFps}) VidFPS: ${videoFps}\n` +
+            `Frames: ${d.frameCount} VidFrames: ${d.videoFrameCount}\n` +
+            `Renders: ${d.renderCount} StateChg: ${d.stateChanges}\n` +
+            `Time: ${timestamp}\n` +
+            `${recentEvents}`
+        );
     });
 
     return (
         <HandleTarget>
             <Handle targetRef="from-context">
-                <group position={[TABLE_WIDTH / 2 + 0.15, TABLE_HEIGHT / 2 + 0.2, 0]}>
+                <group position={[TABLE_WIDTH / 2 + 0.15, TABLE_HEIGHT / 2 + 0.25, 0]}>
                     <XrUi>
                         {/* @ts-expect-error - react-xr-ui types incompatible with fiber v9 rc */}
                         <Layer
-                            width={0.4}
-                            height={0.3}
+                            width={0.45}
+                            height={0.35}
                             backgroundColor="rgba(0, 0, 50, 0.95)"
                             borderRadius={0.01}
                             borderWidth={0.003}
                             borderColor="#00ff00"
                             padding={0.015}
-                            fontSize={0.028}
+                            fontSize={0.024}
                             color="#00ff00"
                             textAlign="left"
                             justifyContent="flex-end"
@@ -432,7 +501,9 @@ function DiagnosticsDisplay({ diagnostics }: { diagnostics: React.RefObject<{ ev
     );
 }
 
-function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTracking, useThumbstick, onToggleThumbstick, diagnostics }: { remoteStreams: RemoteCameraStream[], onJointValuesUpdate: (robotId: string, joints: number[]) => void, trackingEnabled: boolean, onStartTracking: () => void, useThumbstick: boolean, onToggleThumbstick: () => void, diagnostics: React.RefObject<{ events: string[], frameCount: number }> }) {
+function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTracking, useThumbstick, onToggleThumbstick, diagnostics }: { remoteStreams: RemoteCameraStream[], onJointValuesUpdate: (robotId: string, joints: number[]) => void, trackingEnabled: boolean, onStartTracking: () => void, useThumbstick: boolean, onToggleThumbstick: () => void, diagnostics: React.RefObject<DiagnosticsData> }) {
+    // Track React renders
+    diagnostics.current.renderCount++;
 
     // Corner positions for handles (on top of the table surface)
     const handlePositions: [number, number, number][] = [
@@ -625,7 +696,15 @@ export default function ClientViewXR({
     const [useThumbstick, setUseThumbstick] = useState(true);
 
     // Diagnostics ref to track events without causing re-renders
-    const diagnostics = useRef<{ events: string[], frameCount: number }>({ events: [], frameCount: 0 });
+    const diagnostics = useRef<DiagnosticsData>({
+        events: [],
+        frameCount: 0,
+        videoFrameCount: 0,
+        renderCount: 0,
+        lastFps: 0,
+        fpsHistory: [],
+        stateChanges: 0,
+    });
 
     if (!store) {
         return <div>Loading...</div>
