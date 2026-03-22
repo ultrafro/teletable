@@ -154,28 +154,25 @@ function FallbackVideoMesh({ video, scale, onClick, diagnostics }: { video: HTML
         material.map = texture;
         material.needsUpdate = true;
 
-        // Set up onBeforeRender to clear depth buffer before this mesh renders
-        meshRef.current.onBeforeRender = (renderer) => {
-            renderer.clearDepth();
-        };
+        // NOTE: Removed onBeforeRender depth clearing - was causing flicker by clearing every frame
 
         return () => {
             texture.dispose();
-            if (meshRef.current) {
-                meshRef.current.onBeforeRender = () => {};
-            }
         };
     }, [video]);
 
-    // Update texture each frame and track video frame changes
+    // Update texture only when video frame actually changes (not every render frame)
     useFrame(() => {
         if (textureRef.current && video && !video.paused) {
-            textureRef.current.needsUpdate = true;
-
-            // Track video time changes for diagnostics
-            if (diagnostics && video.currentTime !== lastVideoTime.current) {
-                diagnostics.current.videoFrameCount++;
+            // Only update texture if video time actually changed
+            if (video.currentTime !== lastVideoTime.current) {
+                textureRef.current.needsUpdate = true;
                 lastVideoTime.current = video.currentTime;
+
+                // Track video frame changes for diagnostics
+                if (diagnostics) {
+                    diagnostics.current.videoFrameCount++;
+                }
             }
         }
     });
@@ -183,7 +180,12 @@ function FallbackVideoMesh({ video, scale, onClick, diagnostics }: { video: HTML
     return (
         <mesh ref={meshRef} scale={scale} onClick={onClick} renderOrder={99999}>
             <planeGeometry args={[1, 1]} />
-            <meshBasicMaterial toneMapped={false} side={THREE.DoubleSide} />
+            <meshBasicMaterial
+                toneMapped={false}
+                side={THREE.DoubleSide}
+                depthTest={false}
+                depthWrite={false}
+            />
         </mesh>
     );
 }
@@ -612,7 +614,7 @@ function Table({ remoteStreams, onJointValuesUpdate, trackingEnabled, onStartTra
 
 
 
-    });
+    }, -100);  // Priority -100: run before XR layer updates (which run at 0)
 
     return (
         <>

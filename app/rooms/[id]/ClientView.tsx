@@ -127,7 +127,9 @@ export default function ClientView({
       setTimeout(() => {
         console.log('Creating XR store')
         setStore(createXRStore({
-          emulate: { inject: true }
+          emulate: { inject: true },
+          foveation: 0,  // Disable dynamic foveation - common cause of Quest flicker
+          frameRate: 'high',  // Request highest stable frame rate
         }))
       }, 50)
     })
