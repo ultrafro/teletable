@@ -105,14 +105,30 @@ export default function IKRobotFrame({
       handPosition.current = externalGoal.position;
       handOtherValues.current = externalGoal;
     } else {
+      //this is what happens when the client XR view has not started tracking yet
       if (controlMode === "ExternalGoal") {
+
+        //anti rotate, then anti translate the starting position
+        const antiRotatedPosition = startingPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), (baseRotation || [0, 0, 0])[2]);
+        const antiTranslatedPosition = antiRotatedPosition.clone().add(basePosition);
+        handPosition.current.copy(antiTranslatedPosition);
+
+
+
+
         //copy starting position
 
+        //copy starting position by translating it by the base position
+        //then rotate it by the base rotation
+        // const translatedPosition = startingPosition.clone().add(basePosition);
+        // const rotatedPosition = translatedPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), (baseRotation || [0, 0, 0])[2]);
+        // handPosition.current.copy(rotatedPosition);
 
-        const rotatedPosition = startingPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), (baseRotation || [0, 0, 0])[2]);
-        handPosition.current.x = rotatedPosition.x + basePosition.x;
-        handPosition.current.y = rotatedPosition.y + basePosition.y;
-        handPosition.current.z = rotatedPosition.z + basePosition.z;
+
+        // const rotatedPosition = startingPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), (baseRotation || [0, 0, 0])[2]);
+        // handPosition.current.x = rotatedPosition.x + basePosition.x;
+        // handPosition.current.y = rotatedPosition.y + basePosition.y;
+        // handPosition.current.z = rotatedPosition.z + basePosition.z;
       }
 
 
@@ -122,53 +138,55 @@ export default function IKRobotFrame({
 
   return (
     <>
-      <group position={basePosition} rotation={baseRotation}>
-        <IKRobotComponent
-          //basePostion={basePosition}
-          goalPosition={handPosition.current}
-          goalOtherValues={handOtherValues.current}
-          isFlipped={isFlipped}
-          color={handId === "left" ? LeftColor : RightColor}
-          onJointValuesUpdate={(jointValues) => {
-            //copy into currentState.joints
-            for (let i = 0; i < jointValues.length; i++) {
-              if (!currentState.current[handId]) {
-                currentState.current[handId] = {
-                  joints: [],
-                  type: "SO101",
-                };
+      <group rotation={baseRotation}>
+        <group position={basePosition} >
+          <IKRobotComponent
+            //basePostion={basePosition}
+            goalPosition={handPosition.current}
+            goalOtherValues={handOtherValues.current}
+            isFlipped={isFlipped}
+            color={handId === "left" ? LeftColor : RightColor}
+            onJointValuesUpdate={(jointValues) => {
+              //copy into currentState.joints
+              for (let i = 0; i < jointValues.length; i++) {
+                if (!currentState.current[handId]) {
+                  currentState.current[handId] = {
+                    joints: [],
+                    type: "SO101",
+                  };
+                }
+                if (!currentState.current[handId].joints) {
+                  currentState.current[handId].joints = [];
+                }
+                currentState.current[handId].joints[i] = jointValues[i];
               }
-              if (!currentState.current[handId].joints) {
-                currentState.current[handId].joints = [];
+
+
+              if (controlMode === "DirectJoints") {
+                return;
               }
-              currentState.current[handId].joints[i] = jointValues[i];
-            }
 
-
-            if (controlMode === "DirectJoints") {
-              return;
-            }
-
-            //console.log("Joint values for", handId, ":", jointValues);
-            onJointValuesUpdate?.(handId, jointValues);
-          }}
-          useDirectValues={controlMode === "DirectJoints" || false}
-          currentState={currentState}
-          handId={handId}
-        />
-        {/* <ControlPointVisualizer handData={handData} color="#ef4444" /> */}
+              //console.log("Joint values for", handId, ":", jointValues);
+              onJointValuesUpdate?.(handId, jointValues);
+            }}
+            useDirectValues={controlMode === "DirectJoints" || false}
+            currentState={currentState}
+            handId={handId}
+          />
+          {/* <ControlPointVisualizer handData={handData} color="#ef4444" /> */}
 
 
 
-        {controlMode === "ExternalGoal" && externalGoal && !hideExternalGoal && (
-          <>
-            <ExternalGoalVisualizer goal={externalGoal} />
-          </>
-        )}
+          {controlMode === "ExternalGoal" && externalGoal && !hideExternalGoal && (
+            <>
+              <ExternalGoalVisualizer goal={externalGoal} />
+            </>
+          )}
 
 
 
 
+        </group>
       </group>
 
       {controlMode === "WidgetGoal" && (
@@ -179,7 +197,7 @@ export default function IKRobotFrame({
           otherValues={handOtherValues.current}
           handId={handId}
           offset={basePosition}
-          color="#ef4444"
+          color={handId === "left" ? '#3b82f6' : '#ef4444'}
           hideControlSliders={hideControlSliders}
         />
       )}

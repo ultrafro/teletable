@@ -8,9 +8,12 @@ interface ControlSlidersProps {
   onGripperChange: (value: number) => void;
   onPitchChange: (value: number) => void;
   position?: [number, number, number];
+  handId?: string;
+  color?: string;
 }
 
 export default function ControlSliders({
+  handId,
   wristValue,
   gripperValue,
   pitchValue,
@@ -18,6 +21,7 @@ export default function ControlSliders({
   onGripperChange,
   onPitchChange,
   position = [0, 0.1, 0],
+  color,
 }: ControlSlidersProps) {
   return (
     <Html
@@ -36,6 +40,7 @@ export default function ControlSliders({
       onClick={(e) => e.stopPropagation()}
     >
       <div style={{ marginBottom: "10px" }}>
+        <span style={{ color: color }}>Hand: {handId}</span>
         <label
           style={{
             color: "white",

@@ -21,6 +21,32 @@ import {
 import { HandDetection, RobotOtherValues } from "./teletable.model";
 import ControlSliders from "./ControlSliders";
 
+
+function calculateWorldPosition(position: Vector3, basePosition: Vector3, baseRotation: [number, number, number]) {
+
+  //rotate, then translate
+  // const rotatedPosition = position.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+  // const translatedPosition = rotatedPosition.clone().add(basePosition);
+  // return translatedPosition;
+
+
+
+  const translatedPosition = position.clone().add(basePosition);
+  const rotatedPosition = translatedPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+  return rotatedPosition;
+}
+
+function calculateLocalPosition(position: Vector3, basePosition: Vector3, baseRotation: [number, number, number]) {
+  //anti rotate it, then anti translate it
+  const antiRotatedPosition = position.clone().applyAxisAngle(new Vector3(0, 0, 1), -baseRotation[2]);
+  const antiTranslatedPosition = antiRotatedPosition.clone().sub(basePosition);
+  return antiTranslatedPosition;
+
+  // const translatedPosition = position.clone().add(basePosition);
+  // const rotatedPosition = translatedPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+  // return rotatedPosition;
+}
+
 export default function ControlPointVisualizer({
   position,
   basePosition,
@@ -42,7 +68,7 @@ export default function ControlPointVisualizer({
 }) {
 
   //starting position is the point when you apply baseRotation and basePosition to the position
-  const [startingPosition, setStartingPosition] = useState(position.clone());
+  const [startingPosition, setStartingPosition] = useState(calculateWorldPosition(new Vector3(0, 0.2, -0.3), basePosition, baseRotation));
 
 
 
@@ -88,6 +114,7 @@ export default function ControlPointVisualizer({
 
   const [handMatrix, setHandMatrix] = useState<Matrix4>(
     new Matrix4().compose(
+
       position.clone(),
       new Quaternion(),
       new Vector3(1, 1, 1)
@@ -123,10 +150,29 @@ export default function ControlPointVisualizer({
 
   useEffect(() => {
     //update position accordingly
-    const rotatedPosition = startingPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
-    position.x = rotatedPosition.x + basePosition.x;
-    position.y = rotatedPosition.y + basePosition.y;
-    position.z = rotatedPosition.z + basePosition.z;
+
+    //first update position
+    //then rotate
+
+    // const translatedPosition = startingPosition.clone().add(basePosition);
+    // const rotatedPosition = translatedPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+    // position.copy(rotatedPosition);
+
+    //set the starting hand matrix
+    setHandMatrix(new Matrix4().compose(
+      startingPosition,
+      new Quaternion(),
+      new Vector3(1, 1, 1)
+    ));
+
+    const localPosition = calculateLocalPosition(startingPosition, basePosition, baseRotation);
+    position.copy(localPosition);
+
+
+    // const rotatedPosition = startingPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+    // position.x = rotatedPosition.x + basePosition.x;
+    // position.y = rotatedPosition.y + basePosition.y;
+    // position.z = rotatedPosition.z + basePosition.z;
 
 
   }, [startingPosition])
@@ -171,12 +217,19 @@ export default function ControlPointVisualizer({
             const scale = new Vector3();
             localMatrix.decompose(newPosition, rotation, scale);
 
-            //rotate the new position by the base rotation
-            //and offset it by the base position
-            const rotatedPosition = newPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
-            position.x = rotatedPosition.x + basePosition.x;
-            position.y = rotatedPosition.y + basePosition.y;
-            position.z = rotatedPosition.z + basePosition.z;
+            //offset the position by the base position
+            //then rotate the position by the base rotation
+            const translatedPosition = newPosition.clone().add(basePosition);
+            const rotatedPosition = translatedPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+            position.copy(rotatedPosition);
+
+
+            // //rotate the new position by the base rotation
+            // //and offset it by the base position
+            // const rotatedPosition = newPosition.clone().applyAxisAngle(new Vector3(0, 0, 1), baseRotation[2]);
+            // position.x = rotatedPosition.x + basePosition.x;
+            // position.y = rotatedPosition.y + basePosition.y;
+            // position.z = rotatedPosition.z + basePosition.z;
             // const offsetPosition = rotatedPosition.clone().add(basePosition);
 
 
@@ -234,11 +287,11 @@ export default function ControlPointVisualizer({
           <Sphere args={[0.02]} renderOrder={999}>
             <meshStandardMaterial
               //color="#ef4444"
-              color={'#00ffff'}
+              color={color}
               transparent
               opacity={0.5}
               // emissive="#ef4444"
-              emissive={'#00ffff'}
+              emissive={color}
               emissiveIntensity={0.5}
               depthTest={false}
               depthWrite={false}
@@ -295,6 +348,8 @@ export default function ControlPointVisualizer({
           onGripperChange={setGripperValue}
           onPitchChange={setPitchValue}
           position={[0, -0.05, 0]}
+          handId={handId}
+          color={color}
         />
       </group>}
     </group>
