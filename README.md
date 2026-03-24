@@ -2,11 +2,24 @@
 
 <div align="center">
 <video src="media/teasingle_2x.mp4" controls autoplay muted loop width="80%"></video>
+
+<table>
+<tr>
+<td align="center">
+<video src="media/teleop.mp4" controls width="100%"></video>
+<br><b>Teleoperation</b>
+</td>
+<td align="center">
+<video src="media/cleanbathroom.mp4" controls width="100%"></video>
+<br><b>Cleaning Task</b>
+</td>
+</tr>
+</table>
 </div>
 
-Control a robot arm remotely from anywhere on the internet — using your hands or a VR headset.
+Bimanual teleoperation with stereo vision — control two robot arms remotely using your hands and a VR headset.
 
-TeleTable streams your hand movements to a physical SO-101 robot arm over a peer-to-peer connection. One person runs the robot locally; another person controls it from anywhere. The web app handles all the connection logic. The SimpleRobotServer handles all the hardware.
+TeleTable streams your hand movements to dual SO-101 robot arms over a peer-to-peer connection, with depth perception from a stereo camera. One person runs the robot locally; another person controls it from anywhere with full 3D vision of the workspace.
 
 ---
 
@@ -150,19 +163,6 @@ Place the robot arm on the adjustable stand or on a stable desk surface. The arm
 ---
 
 ## What You Can Do With It
-
-<table>
-<tr>
-<td align="center">
-<video src="media/teleop.mp4" controls width="100%"></video>
-<br><b>Teleoperation</b>
-</td>
-<td align="center">
-<video src="media/cleanbathroom.mp4" controls width="100%"></video>
-<br><b>Cleaning Task</b>
-</td>
-</tr>
-</table>
 
 TeleTable is useful for **simple, slow-paced physical tasks** where you want to let someone remote help with something hands-on. Some examples:
 
