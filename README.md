@@ -2,19 +2,21 @@
 
 <div align="center">
 
-https://github.com/ultrafro/teletable/raw/main/media/teasingle_2x.mp4
+
+https://github.com/user-attachments/assets/a2852cdb-0e67-42c2-82b5-4e1cf147aee2
 
 <table>
 <tr>
 <td align="center">
 
-https://github.com/ultrafro/teletable/raw/main/media/teleop.mp4
+
+https://github.com/user-attachments/assets/57ea7997-074c-452f-8731-53cfce129041
 
 **Teleoperation**
 </td>
 <td align="center">
 
-https://github.com/ultrafro/teletable/raw/main/media/cleanbathroom.mp4
+https://github.com/user-attachments/assets/1d6afc1b-f1c6-456b-808a-79c676833287
 
 **Cleaning Task**
 </td>
