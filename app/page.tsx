@@ -118,9 +118,9 @@ export default function LandingPage() {
           </h2>
           <div className="grid grid-cols-3 gap-4 h-[calc(100%-2rem)] max-h-[70vh]">
             {[
-              { src: "/videos/cleanbathroom.mp4", label: "Cleaning bathroom" },
-              { src: "/videos/making_tea.mp4", label: "Making tea" },
-              { src: "/videos/teleop.mp4", label: "Teleoperation" },
+              { src: "/videos/cleanbathroom.mp4", label: "Cleaning bathroom", subtitle: "teleoperated, 2x speed" },
+              { src: "/videos/making_tea.mp4", label: "Making tea", subtitle: "teleoperated, 2x speed" },
+              { src: "/videos/teleop.mp4", label: "Teleoperation", subtitle: "teleoperated, 1x speed" },
             ].map((vid) => (
               <div
                 key={vid.src}
@@ -141,7 +141,7 @@ export default function LandingPage() {
                 />
                 <div className="px-3 py-2 text-xs text-white/50 font-medium">
                   {vid.label}
-                  <span className="block text-white/30">teleoperated, 2x speed</span>
+                  <span className="block text-white/30">{vid.subtitle}</span>
                 </div>
               </div>
             ))}
