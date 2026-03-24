@@ -1,17 +1,22 @@
 # TeleTable
 
 <div align="center">
-<video src="media/teasingle_2x.mp4" controls autoplay muted loop width="80%"></video>
+
+https://github.com/ultrafro/teletable/raw/main/media/teasingle_2x.mp4
 
 <table>
 <tr>
 <td align="center">
-<video src="media/teleop.mp4" controls width="100%"></video>
-<br><b>Teleoperation</b>
+
+https://github.com/ultrafro/teletable/raw/main/media/teleop.mp4
+
+**Teleoperation**
 </td>
 <td align="center">
-<video src="media/cleanbathroom.mp4" controls width="100%"></video>
-<br><b>Cleaning Task</b>
+
+https://github.com/ultrafro/teletable/raw/main/media/cleanbathroom.mp4
+
+**Cleaning Task**
 </td>
 </tr>
 </table>
