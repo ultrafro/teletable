@@ -136,8 +136,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="w-full px-6 py-4 border-b border-foreground/10 flex justify-between items-center">
-        <Link href="/home" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Teletable
+        <Link href="/home" className="text-2xl font-bold text-white">
+          chorebot<span className="text-white/30">.io</span>
         </Link>
         <div className="flex items-center gap-4">
           <span className="text-sm text-foreground/70">{user.email}</span>

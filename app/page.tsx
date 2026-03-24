@@ -54,157 +54,102 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-foreground/5">
-      {/* Header with Sign In Button */}
-      <header className="w-full px-6 py-4 flex justify-end items-center">
-        <button
-          onClick={() => setShowSignInModal(true)}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-        >
-          Sign In
-        </button>
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Header */}
+      <header className="w-full px-6 py-4 flex justify-between items-center border-b border-white/5">
+        <span className="text-lg font-semibold tracking-tight">
+          chorebot<span className="text-white/30">.io</span>
+        </span>
+        <div className="flex items-center gap-4">
+          <a
+            href="https://github.com/ultrafro/teletable"
+            target="_blank"
+            rel="noopener"
+            className="text-white/50 hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+          </a>
+          <button
+            onClick={() => setShowSignInModal(true)}
+            className="px-5 py-2 bg-white/10 text-white/80 rounded-lg text-sm font-medium hover:bg-white/15 transition-colors"
+          >
+            Sign In
+          </button>
+        </div>
       </header>
 
       {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-6 py-12 md:py-24">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Teletable
+      <main className="max-w-5xl mx-auto px-6">
+        <div className="text-center py-24 md:py-32">
+          <h1 className="text-6xl md:text-8xl font-bold tracking-tight mb-4">
+            chorebot
           </h1>
-          <p className="text-xl md:text-2xl text-foreground/80 mb-8 max-w-3xl mx-auto">
-            Control robot arms on tables anywhere in the world. Help others
-            complete chores remotely with precision and ease.
+          <p className="text-lg text-white/40 mb-10">
+            a robot that does your chores
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-3 justify-center">
             <button
               onClick={() => setShowSignInModal(true)}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors"
+              className="px-7 py-3 bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors"
             >
               Get Started
             </button>
-            <Link
-              href="#features"
-              className="px-8 py-3 bg-foreground/10 text-foreground rounded-lg font-semibold text-lg hover:bg-foreground/20 transition-colors"
+            <a
+              href="https://github.com/ultrafro/teletable"
+              target="_blank"
+              rel="noopener"
+              className="px-7 py-3 bg-white/10 text-white/80 rounded-lg font-semibold hover:bg-white/15 transition-colors"
             >
-              Learn More
-            </Link>
+              GitHub
+            </a>
           </div>
         </div>
 
-        {/* Features Section */}
-        <div id="features" className="mt-32 grid md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-foreground/5 rounded-xl p-8 border border-foreground/10">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        {/* Demos */}
+        <div className="pb-24">
+          <h2 className="text-xs font-medium text-white/30 uppercase tracking-[0.2em] text-center mb-10">
+            Demos
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { src: "/videos/cleanbathroom.mp4", label: "Cleaning bathroom" },
+              { src: "/videos/making_tea.mp4", label: "Making tea" },
+              { src: "/videos/teleop.mp4", label: "Teleoperation" },
+            ].map((vid) => (
+              <div
+                key={vid.src}
+                className="bg-white/[0.03] rounded-xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                <video
+                  src={vid.src}
+                  muted
+                  playsInline
+                  loop
+                  preload="metadata"
+                  className="w-full aspect-[9/16] object-cover bg-black"
+                  onMouseEnter={(e) => e.currentTarget.play()}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.pause();
+                    e.currentTarget.currentTime = 0;
+                  }}
                 />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Remote Control</h3>
-            <p className="text-foreground/70">
-              Control robot arms from anywhere in the world with real-time
-              precision and low latency.
-            </p>
-          </div>
-
-          <div className="bg-foreground/5 rounded-xl p-8 border border-foreground/10">
-            <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Help Others</h3>
-            <p className="text-foreground/70">
-              Assist friends, family, or clients with tasks that require physical
-              presence, all from your computer.
-            </p>
-          </div>
-
-          <div className="bg-foreground/5 rounded-xl p-8 border border-foreground/10">
-            <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Secure & Safe</h3>
-            <p className="text-foreground/70">
-              Password-protected rooms and secure connections ensure your
-              sessions are private and controlled.
-            </p>
-          </div>
-        </div>
-
-        {/* How It Works */}
-        <div className="mt-32 text-center">
-          <h2 className="text-4xl font-bold mb-12">How It Works</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
-                1
+                <div className="px-4 py-3 text-sm text-white/50 font-medium">
+                  {vid.label}
+                </div>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Create a Room</h3>
-              <p className="text-foreground/70">
-                Sign up and create a room to host your robot arm session.
-              </p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
-                2
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Share the Link</h3>
-              <p className="text-foreground/70">
-                Share your room link with others who need assistance.
-              </p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
-                3
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Start Helping</h3>
-              <p className="text-foreground/70">
-                Control the robot arm remotely to help complete tasks in
-                real-time.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </main>
 
       {/* Sign In Modal */}
       {showSignInModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-xl shadow-xl max-w-md w-full p-8 border border-foreground/10">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] rounded-xl shadow-xl max-w-md w-full p-8 border border-white/10">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">
+              <h2 className="text-2xl font-bold text-white">
                 {isSignUp ? "Create Account" : "Sign In"}
               </h2>
               <button
@@ -212,7 +157,7 @@ export default function LandingPage() {
                   setShowSignInModal(false);
                   setAuthError(null);
                 }}
-                className="text-foreground/50 hover:text-foreground"
+                className="text-white/40 hover:text-white"
               >
                 <svg
                   className="w-6 h-6"
@@ -234,7 +179,7 @@ export default function LandingPage() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium mb-2"
+                  className="block text-sm font-medium mb-2 text-white/70"
                 >
                   Email address
                 </label>
@@ -246,14 +191,14 @@ export default function LandingPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 bg-background border border-foreground/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 text-white placeholder-white/30"
                   placeholder="Enter your email"
                 />
               </div>
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium mb-2"
+                  className="block text-sm font-medium mb-2 text-white/70"
                 >
                   Password
                 </label>
@@ -265,13 +210,13 @@ export default function LandingPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 bg-background border border-foreground/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30 text-white placeholder-white/30"
                   placeholder="Enter your password"
                 />
               </div>
 
               {authError && (
-                <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                   {authError}
                 </div>
               )}
@@ -279,7 +224,7 @@ export default function LandingPage() {
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-white text-black rounded-lg font-medium hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {authLoading
                   ? "Loading..."
@@ -295,7 +240,7 @@ export default function LandingPage() {
                     setIsSignUp(!isSignUp);
                     setAuthError(null);
                   }}
-                  className="text-blue-600 hover:text-blue-700 text-sm"
+                  className="text-white/50 hover:text-white text-sm"
                 >
                   {isSignUp
                     ? "Already have an account? Sign in"
