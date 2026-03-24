@@ -43,7 +43,7 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="h-screen overflow-hidden flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground"></div>
       </div>
     );
@@ -54,7 +54,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="h-screen overflow-hidden bg-[#0a0a0a] text-white">
       {/* Header */}
       <header className="w-full px-6 py-4 flex justify-between items-center border-b border-white/5">
         <span className="text-lg font-semibold tracking-tight">
