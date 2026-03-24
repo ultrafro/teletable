@@ -80,19 +80,23 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="max-w-5xl mx-auto px-6">
-        <div className="text-center py-24 md:py-32">
-          <h1 className="text-6xl md:text-8xl font-bold tracking-tight mb-4">
+      {/* Everything above the fold */}
+      <main className="max-w-6xl mx-auto px-6 h-[calc(100vh-57px)] flex flex-col">
+        {/* Hero - compact */}
+        <div className="text-center pt-8 pb-4">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-2">
             chorebot
           </h1>
-          <p className="text-lg text-white/40 mb-10">
-            a robot that does your chores
+          <p className="text-base text-white/40 mb-1">
+            a robot you can build at home to do chores
+          </p>
+          <p className="text-xs text-white/25 mb-5">
+            open source robot &middot; open source platform
           </p>
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => setShowSignInModal(true)}
-              className="px-7 py-3 bg-white text-black rounded-lg font-semibold hover:bg-white/90 transition-colors"
+              className="px-6 py-2.5 bg-white text-black rounded-lg font-semibold text-sm hover:bg-white/90 transition-colors"
             >
               Get Started
             </button>
@@ -100,19 +104,19 @@ export default function LandingPage() {
               href="https://github.com/ultrafro/teletable"
               target="_blank"
               rel="noopener"
-              className="px-7 py-3 bg-white/10 text-white/80 rounded-lg font-semibold hover:bg-white/15 transition-colors"
+              className="px-6 py-2.5 bg-white/10 text-white/80 rounded-lg font-semibold text-sm hover:bg-white/15 transition-colors"
             >
               GitHub
             </a>
           </div>
         </div>
 
-        {/* Demos */}
-        <div className="pb-24">
-          <h2 className="text-xs font-medium text-white/30 uppercase tracking-[0.2em] text-center mb-10">
+        {/* Demos - fills remaining space */}
+        <div className="flex-1 min-h-0 pb-6">
+          <h2 className="text-xs font-medium text-white/30 uppercase tracking-[0.2em] text-center mb-4">
             Demos
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-4 h-[calc(100%-2rem)] max-h-[70vh]">
             {[
               { src: "/videos/cleanbathroom.mp4", label: "Cleaning bathroom" },
               { src: "/videos/making_tea.mp4", label: "Making tea" },
@@ -120,7 +124,7 @@ export default function LandingPage() {
             ].map((vid) => (
               <div
                 key={vid.src}
-                className="bg-white/[0.03] rounded-xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-colors"
+                className="bg-white/[0.03] rounded-xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-colors flex flex-col"
               >
                 <video
                   src={vid.src}
@@ -128,14 +132,14 @@ export default function LandingPage() {
                   playsInline
                   loop
                   preload="metadata"
-                  className="w-full aspect-[9/16] object-cover bg-black"
+                  className="flex-1 min-h-0 w-full object-cover bg-black"
                   onMouseEnter={(e) => e.currentTarget.play()}
                   onMouseLeave={(e) => {
                     e.currentTarget.pause();
                     e.currentTarget.currentTime = 0;
                   }}
                 />
-                <div className="px-4 py-3 text-sm text-white/50 font-medium">
+                <div className="px-3 py-2 text-xs text-white/50 font-medium">
                   {vid.label}
                 </div>
               </div>
