@@ -34,8 +34,8 @@ TeleTable streams your hand movements to dual SO-101 robot arms over a peer-to-p
 
 1. Plug in the robot arms and stereo camera via USB
 2. Double-click `start_simple_robot_server.bat`
-3. Go to [teletable.com](https://teletable.com), create a room, and click **Connect to Robot**
-4. On your VR headset, go to [teletable.com](https://teletable.com) with the same account, join the room, and start controlling
+3. Go to [chorebot.io](https://chorebot.io), create a room, and click **Connect to Robot**
+4. On your VR headset, go to [chorebot.io](https://chorebot.io) with the same account, join the room, and start controlling
 
 ---
 
