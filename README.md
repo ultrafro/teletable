@@ -1,5 +1,9 @@
 # TeleTable
 
+<div align="center">
+<video src="media/teasingle_2x.mp4" controls autoplay muted loop width="80%"></video>
+</div>
+
 Control a robot arm remotely from anywhere on the internet — using your hands or a VR headset.
 
 TeleTable streams your hand movements to a physical SO-101 robot arm over a peer-to-peer connection. One person runs the robot locally; another person controls it from anywhere. The web app handles all the connection logic. The SimpleRobotServer handles all the hardware.
@@ -146,6 +150,19 @@ Place the robot arm on the adjustable stand or on a stable desk surface. The arm
 ---
 
 ## What You Can Do With It
+
+<table>
+<tr>
+<td align="center">
+<video src="media/teleop.mp4" controls width="100%"></video>
+<br><b>Teleoperation</b>
+</td>
+<td align="center">
+<video src="media/cleanbathroom.mp4" controls width="100%"></video>
+<br><b>Cleaning Task</b>
+</td>
+</tr>
+</table>
 
 TeleTable is useful for **simple, slow-paced physical tasks** where you want to let someone remote help with something hands-on. Some examples:
 
