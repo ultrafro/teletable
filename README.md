@@ -1,4 +1,4 @@
-# TeleTable
+# Chorebot
 
 <div align="center">
 
@@ -26,7 +26,7 @@ https://github.com/user-attachments/assets/1d6afc1b-f1c6-456b-808a-79c676833287
 
 Bimanual teleoperation with stereo vision — control two robot arms remotely using your hands and a VR headset.
 
-TeleTable streams your hand movements to dual SO-101 robot arms over a peer-to-peer connection, with depth perception from a stereo camera. One person runs the robot locally; another person controls it from anywhere with full 3D vision of the workspace.
+Chorebot streams your hand movements to dual SO-101 robot arms over a peer-to-peer connection, with depth perception from a stereo camera. One person runs the robot locally; another person controls it from anywhere with full 3D vision of the workspace.
 
 ---
 
@@ -48,7 +48,7 @@ https://github.com/user-attachments/assets/441e0a2d-05c4-414d-beb6-9bfb4c2a9a8d
 
 The SO-101 is an open-source 6-DOF robot arm designed for manipulation research. You need **one follower arm** (the physical arm that moves) and optionally one **leader arm** (a second arm you hold to control the first with your hands directly).
 
-For TeleTable, the follower arm is controlled via WebSocket from the web app, so you don't necessarily need a leader arm — you can control it with hand tracking or a VR headset instead.
+For Chorebot, the follower arm is controlled via WebSocket from the web app, so you don't necessarily need a leader arm — you can control it with hand tracking or a VR headset instead.
 
 - **Official docs & BOM:** [huggingface.co/docs/lerobot/so101](https://huggingface.co/docs/lerobot/so101)
 - **Assembly guide:** [huggingface.co/docs/lerobot/en/assemble_so101](https://huggingface.co/docs/lerobot/en/assemble_so101)
@@ -125,7 +125,7 @@ Place the robot arm on the adjustable stand or on a stable desk surface. The arm
 
 ## What You Can Do With It
 
-TeleTable is useful for **simple, slow-paced physical tasks** where you want to let someone remote help with something hands-on. Some examples:
+Chorebot is useful for **simple, slow-paced physical tasks** where you want to let someone remote help with something hands-on. Some examples:
 
 - **Making tea** — moving a teabag, pressing a button on a kettle, placing a cup
 - **Wiping a surface** — slow sweeping motions with a cloth attached to the gripper
